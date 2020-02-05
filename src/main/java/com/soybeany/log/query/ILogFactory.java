@@ -9,6 +9,4 @@ public interface ILogFactory<Line, Flag, Log> {
 
     void addLine(Line line);
 
-    void addContent(Line line, String content);
-
 }

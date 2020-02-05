@@ -3,7 +3,12 @@ package com.soybeany.log.query;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public interface ILoader {
+public interface ILoader<Range> {
+
+    /**
+     * 设置加载的范围
+     */
+    void setRange(Range range);
 
     /**
      * 获取下一行内容

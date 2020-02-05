@@ -5,4 +5,5 @@ package com.soybeany.log.query.parser;
  */
 public interface ILineParser<Line> extends IParser<String, Line> {
 
+    void addContent(Line line, String content);
 }

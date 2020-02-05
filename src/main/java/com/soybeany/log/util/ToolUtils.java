@@ -7,7 +7,9 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class ParamUtils {
+public class ToolUtils {
+
+    // ****************************************检查****************************************
 
     public static void checkExist(Map<String, String> param, String... keys) throws ParamException {
         if (null == keys || keys.length == 0) {
@@ -23,6 +25,8 @@ public class ParamUtils {
     public static boolean isEmpty(String string) {
         return null == string || string.trim().length() == 0;
     }
+
+    // ****************************************转换****************************************
 
     public static String arrToString(String... item) {
         if (null == item || item.length == 0) {

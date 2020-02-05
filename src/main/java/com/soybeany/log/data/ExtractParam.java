@@ -1,6 +1,6 @@
 package com.soybeany.log.data;
 
-import com.soybeany.log.util.ParamUtils;
+import com.soybeany.log.util.ToolUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -45,7 +45,7 @@ public class ExtractParam {
         // 使用同步模式
         manager.put(MANAGER_MODE, MODE_SYNC);
         // 查询全部类型
-        handler.put(HANDLER_TYPE, ParamUtils.arrToString(TYPE_REQUEST, TYPE_TIMER, TYPE_THREAD_POOL));
+        handler.put(HANDLER_TYPE, ToolUtils.arrToString(TYPE_REQUEST, TYPE_TIMER, TYPE_THREAD_POOL));
     }
 
 }

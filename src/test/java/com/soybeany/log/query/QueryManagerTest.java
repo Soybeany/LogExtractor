@@ -1,6 +1,11 @@
 package com.soybeany.log.query;
 
 import com.google.gson.Gson;
+import com.soybeany.log.base.IIndexCenter;
+import com.soybeany.log.base.ISeniorLine;
+import com.soybeany.log.index.IIndexCreator;
+import com.soybeany.log.index.IIndexLoader;
+import com.soybeany.log.index.IndexManager;
 import com.soybeany.log.query.parser.IFlagParser;
 import com.soybeany.log.query.parser.ILineParser;
 import com.soybeany.log.std.data.Flag;
@@ -22,8 +27,21 @@ import java.util.regex.Pattern;
 class QueryManagerTest {
 
     @Test
-    public void test() {
-        QueryManager<Line, Flag, Log> manager = new QueryManager<Line, Flag, Log>();
+    public void testIndex() {
+        IndexManager<PositionParam, Position, IndexParam, Index, SLine, Line, Flag> manager = new IndexManager<PositionParam, Position, IndexParam, Index, SLine, Line, Flag>(null, null);
+        manager.setCenter(new IndexCenter());
+        manager.setLoader(new Loader());
+        manager.setLineParser(new LineParser());
+        manager.setFlagParser(new FlagParser());
+        manager.addLineCreator(new LineIndexCreator());
+        manager.addFlagCreator(new FlagIndexCreator());
+        manager.createIndexes();
+    }
+
+    @Test
+    public void testQuery() {
+        QueryManager<RangeParam, Range, Line, Flag, Log> manager = new QueryManager<RangeParam, Range, Line, Flag, Log>(null);
+        manager.setCenter(new IndexCenter());
         manager.setLoader(new Loader());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
@@ -34,7 +52,24 @@ class QueryManagerTest {
         System.out.println(result);
     }
 
-    private static class Loader implements ILoader {
+    // ****************************************模块****************************************
+
+    private static class IndexCenter implements IIndexCenter<PositionParam, Position, RangeParam, Range, IndexParam, Index> {
+
+        public Position getLoadOutset(PositionParam param) {
+            return null;
+        }
+
+        public Range getLoadRange(RangeParam param) {
+            return null;
+        }
+
+        public Index getIndex(IndexParam param) {
+            return null;
+        }
+    }
+
+    private static class Loader implements ILoader<Range>, IIndexLoader<Position, SLine> {
 
         private static String[] LINES = {
                 "100-FLAG-开始-客户端:238744 /efb/abc/def.do {param1}",
@@ -50,9 +85,24 @@ class QueryManagerTest {
 
         private int mIndex;
 
+        public void setRange(Range range) {
+
+        }
+
         public String getNextLine() {
             if (mIndex < LINES.length) {
                 return LINES[mIndex++];
+            }
+            return null;
+        }
+
+        public void setOutset(Position pos) {
+
+        }
+
+        public SLine getNextSeniorLine() {
+            if (mIndex < LINES.length) {
+                return new SLine(mIndex, LINES[mIndex++]);
             }
             return null;
         }
@@ -72,6 +122,11 @@ class QueryManagerTest {
             line.content = matcher.group(2);
             return line;
         }
+
+        public void addContent(Line line, String content) {
+            line.content += "\n" + content;
+        }
+
     }
 
     private static class FlagParser implements IFlagParser<Line, Flag> {
@@ -89,6 +144,7 @@ class QueryManagerTest {
             flag.detail = matcher.group(3);
             return FlagFactory.get(flag);
         }
+
     }
 
     private static class LogFactory implements ILogFactory<Line, Flag, Log> {
@@ -122,10 +178,6 @@ class QueryManagerTest {
             }
         }
 
-        public void addContent(Line line, String content) {
-            line.content += "\n" + content;
-        }
-
     }
 
     private static class Reporter implements IReporter<Log> {
@@ -146,14 +198,6 @@ class QueryManagerTest {
         }
     }
 
-    private static class FlagInfo extends Flag {
-        String detail;
-
-        FlagInfo(MetaInfo info) {
-            super(info);
-        }
-    }
-
     private static class FlagFactory {
 
         static Flag get(FlagInfo info) {
@@ -163,6 +207,34 @@ class QueryManagerTest {
             return new RequestFlag(info);
         }
 
+    }
+
+    private static class Filter implements IFilter<Log> {
+        public boolean isFiltered(Log log) {
+            return "100".equals(log.logId);
+        }
+    }
+
+    private static class LineIndexCreator implements IIndexCreator<Index, SLine, Line> {
+        public void onCreateIndex(Index index, SLine sLine, Line line) {
+            int a = 2;
+        }
+    }
+
+    private static class FlagIndexCreator implements IIndexCreator<Index, SLine, Flag> {
+        public void onCreateIndex(Index index, SLine sLine, Flag flag) {
+            int a = 2;
+        }
+    }
+
+    // ****************************************模型****************************************
+
+    private static class FlagInfo extends Flag {
+        String detail;
+
+        FlagInfo(MetaInfo info) {
+            super(info);
+        }
     }
 
     private static class RequestFlag extends Flag {
@@ -184,10 +256,44 @@ class QueryManagerTest {
         }
     }
 
-    private static class Filter implements IFilter<Log> {
-        public boolean isFiltered(Log log) {
-            return "100".equals(log.logId);
-        }
+    private static class RangeParam {
+
     }
 
+    private static class Range {
+        int start;
+        int end;
+    }
+
+    private static class PositionParam {
+
+    }
+
+    private static class Position {
+        int index;
+    }
+
+    private static class IndexParam {
+
+    }
+
+    private static class Index {
+        Map<String, Range> thread = new HashMap<String, Range>();
+        Map<String, Range> user = new HashMap<String, Range>();
+        Map<String, Range> url = new HashMap<String, Range>();
+    }
+
+    private static class SLine implements ISeniorLine {
+        int index;
+        String line;
+
+        SLine(int index, String line) {
+            this.index = index;
+            this.line = line;
+        }
+
+        public String getLineString() {
+            return line;
+        }
+    }
 }
