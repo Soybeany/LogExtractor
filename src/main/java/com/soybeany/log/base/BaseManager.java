@@ -4,6 +4,7 @@ package com.soybeany.log.base;
 import com.soybeany.log.query.parser.IFlagParser;
 import com.soybeany.log.query.parser.ILineParser;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-public abstract class BaseManager<SLine extends ISeniorLine, Line, Flag> {
+public abstract class BaseManager<RLine extends IRawLine, Line, Flag> {
 
     private ILineParser<Line> mLineParser;
     private IFlagParser<Line, Flag> mFlagParser;
@@ -44,12 +45,12 @@ public abstract class BaseManager<SLine extends ISeniorLine, Line, Flag> {
     /**
      * @return 是否到达文本末尾
      */
-    protected boolean parseLines(ICallback<SLine, Line, Flag> callback) {
+    protected boolean parseLines(ICallback<RLine, Line, Flag> callback) throws IOException {
         Line lastLine = null;
-        SLine sLine;
+        RLine rLine;
         String lineString = null;
         // 若数据源有数据，则继续
-        while (null != (sLine = getNextSLine()) && null != (lineString = sLine.getLineString())) {
+        while (null != (rLine = getNextRawLine()) && null != (lineString = rLine.getLineText())) {
             // 将一行文本转换为行对象
             Line curLine = mLineParser.parse(lineString);
             // 若无法解析，则为上一行对象的文本
@@ -61,7 +62,7 @@ public abstract class BaseManager<SLine extends ISeniorLine, Line, Flag> {
                 continue;
             }
             // 执行回调
-            boolean needBreak = callback.onHandleLineAndFlag(sLine, curLine, mFlagParser.parse(curLine));
+            boolean needBreak = callback.onHandleLineAndFlag(rLine, curLine, mFlagParser.parse(curLine));
             if (needBreak) {
                 break;
             }
@@ -69,18 +70,18 @@ public abstract class BaseManager<SLine extends ISeniorLine, Line, Flag> {
             lastLine = curLine;
         }
         // 若数据源已没数据，则返回打断标识
-        return null == lineString;
+        return null == rLine || null == lineString;
     }
 
-    protected abstract SLine getNextSLine();
+    protected abstract RLine getNextRawLine() throws IOException;
 
-    protected interface ICallback<SLine extends ISeniorLine, Line, Flag> {
+    protected interface ICallback<RLine extends IRawLine, Line, Flag> {
         /**
          * @param line 不为null
          * @param flag 此行对应为的标签，可为null
          * @return 是否需要中断
          */
-        boolean onHandleLineAndFlag(SLine sLine, Line line, Flag flag);
+        boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag);
     }
 
 }

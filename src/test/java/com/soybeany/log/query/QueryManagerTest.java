@@ -2,18 +2,22 @@ package com.soybeany.log.query;
 
 import com.google.gson.Gson;
 import com.soybeany.log.base.IIndexCenter;
-import com.soybeany.log.base.ISeniorLine;
+import com.soybeany.log.base.ILoader;
+import com.soybeany.log.impl.handle.Log;
+import com.soybeany.log.impl.loader.single.SFileRange;
+import com.soybeany.log.impl.loader.single.SFileRawLine;
+import com.soybeany.log.impl.loader.single.SingleFileLoader;
+import com.soybeany.log.impl.parser.Flag;
+import com.soybeany.log.impl.parser.Line;
+import com.soybeany.log.impl.parser.MetaInfo;
 import com.soybeany.log.index.IIndexCreator;
-import com.soybeany.log.index.IIndexLoader;
 import com.soybeany.log.index.IndexManager;
 import com.soybeany.log.query.parser.IFlagParser;
 import com.soybeany.log.query.parser.ILineParser;
-import com.soybeany.log.std.data.Flag;
-import com.soybeany.log.std.data.Line;
-import com.soybeany.log.std.data.Log;
-import com.soybeany.log.std.data.MetaInfo;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,11 +30,15 @@ import java.util.regex.Pattern;
  */
 class QueryManagerTest {
 
+    private IndexCenter mIndexCenter = new IndexCenter();
+
+    private ILoader<SFileRange, SFileRawLine> mLoader = new SingleFileLoader(new File("D:\\source.txt"));
+
     @Test
-    public void testIndex() {
-        IndexManager<PositionParam, Position, IndexParam, Index, SLine, Line, Flag> manager = new IndexManager<PositionParam, Position, IndexParam, Index, SLine, Line, Flag>(null, null);
-        manager.setCenter(new IndexCenter());
-        manager.setLoader(new Loader());
+    public void testIndex() throws IOException {
+        IndexManager<RangeParam, SFileRange, IndexParam, Index, SFileRawLine, Line, Flag> manager = new IndexManager<RangeParam, SFileRange, IndexParam, Index, SFileRawLine, Line, Flag>(null, null);
+        manager.setCenter(mIndexCenter);
+        manager.setLoader(mLoader);
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
         manager.addLineCreator(new LineIndexCreator());
@@ -39,10 +47,10 @@ class QueryManagerTest {
     }
 
     @Test
-    public void testQuery() {
-        QueryManager<RangeParam, Range, Line, Flag, Log> manager = new QueryManager<RangeParam, Range, Line, Flag, Log>(null);
-        manager.setCenter(new IndexCenter());
-        manager.setLoader(new Loader());
+    public void testQuery() throws IOException {
+        QueryManager<RangeParam, SFileRange, Line, Flag, Log> manager = new QueryManager<RangeParam, SFileRange, Line, Flag, Log>(null);
+        manager.setCenter(mIndexCenter);
+        manager.setLoader(mLoader);
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
         manager.setLogFactory(new LogFactory());
@@ -54,63 +62,22 @@ class QueryManagerTest {
 
     // ****************************************模块****************************************
 
-    private static class IndexCenter implements IIndexCenter<PositionParam, Position, RangeParam, Range, IndexParam, Index> {
+    private static class IndexCenter implements IIndexCenter<RangeParam, SFileRange, IndexParam, Index> {
 
-        public Position getLoadOutset(PositionParam param) {
-            return null;
-        }
+        private final Index mIndex = new Index();
 
-        public Range getLoadRange(RangeParam param) {
+        public SFileRange getLoadRange(RangeParam param) {
             return null;
         }
 
         public Index getIndex(IndexParam param) {
-            return null;
-        }
-    }
-
-    private static class Loader implements ILoader<Range>, IIndexLoader<Position, SLine> {
-
-        private static String[] LINES = {
-                "100-FLAG-开始-客户端:238744 /efb/abc/def.do {param1}",
-                "100-这就是100",
-                "换行了",
-                "再换一行",
-                "101-FLAG-开始-客户端:238744 /efb/ggg/def.do {param2}",
-                "100-FLAG-结束-客户端:238744 /efb/abc/def.do {param1}",
-                "101-这是另外的101",
-                "101-这是101的第二行日志",
-                "101-FLAG-结束-客户端:238744 /efb/ggg/def.do {param2}",
-        };
-
-        private int mIndex;
-
-        public void setRange(Range range) {
-
-        }
-
-        public String getNextLine() {
-            if (mIndex < LINES.length) {
-                return LINES[mIndex++];
-            }
-            return null;
-        }
-
-        public void setOutset(Position pos) {
-
-        }
-
-        public SLine getNextSeniorLine() {
-            if (mIndex < LINES.length) {
-                return new SLine(mIndex, LINES[mIndex++]);
-            }
-            return null;
+            return mIndex;
         }
     }
 
     private static class LineParser implements ILineParser<Line> {
 
-        private static Pattern PATTERN = Pattern.compile("(\\d+)-(.*)");
+        private static Pattern PATTERN = Pattern.compile("(\\d+)-(\\d+)-(.*)");
 
         public Line parse(String s) {
             Matcher matcher = PATTERN.matcher(s);
@@ -118,8 +85,9 @@ class QueryManagerTest {
                 return null;
             }
             Line line = new Line();
-            line.info.thread = matcher.group(1);
-            line.content = matcher.group(2);
+            line.info.time = matcher.group(1);
+            line.info.thread = matcher.group(2);
+            line.content = matcher.group(3);
             return line;
         }
 
@@ -215,15 +183,18 @@ class QueryManagerTest {
         }
     }
 
-    private static class LineIndexCreator implements IIndexCreator<Index, SLine, Line> {
-        public void onCreateIndex(Index index, SLine sLine, Line line) {
-            int a = 2;
+    private static class LineIndexCreator implements IIndexCreator<Index, SFileRawLine, Line> {
+        public void onCreateIndex(Index index, SFileRawLine rLine, Line line) {
+            int time = Integer.parseInt(line.info.time);
+            if (null == index.time[time]) {
+                index.time[time] = SFileRange.from(rLine.getStartPointer());
+            }
         }
     }
 
-    private static class FlagIndexCreator implements IIndexCreator<Index, SLine, Flag> {
-        public void onCreateIndex(Index index, SLine sLine, Flag flag) {
-            int a = 2;
+    private static class FlagIndexCreator implements IIndexCreator<Index, SFileRawLine, Flag> {
+        public void onCreateIndex(Index index, SFileRawLine rLine, Flag flag) {
+
         }
     }
 
@@ -260,40 +231,14 @@ class QueryManagerTest {
 
     }
 
-    private static class Range {
-        int start;
-        int end;
-    }
-
-    private static class PositionParam {
-
-    }
-
-    private static class Position {
-        int index;
-    }
-
     private static class IndexParam {
 
     }
 
     private static class Index {
-        Map<String, Range> thread = new HashMap<String, Range>();
-        Map<String, Range> user = new HashMap<String, Range>();
-        Map<String, Range> url = new HashMap<String, Range>();
-    }
-
-    private static class SLine implements ISeniorLine {
-        int index;
-        String line;
-
-        SLine(int index, String line) {
-            this.index = index;
-            this.line = line;
-        }
-
-        public String getLineString() {
-            return line;
-        }
+        SFileRange[] time = new SFileRange[5];
+        Map<String, SFileRange> thread = new HashMap<String, SFileRange>();
+        Map<String, SFileRange> user = new HashMap<String, SFileRange>();
+        Map<String, SFileRange> url = new HashMap<String, SFileRange>();
     }
 }

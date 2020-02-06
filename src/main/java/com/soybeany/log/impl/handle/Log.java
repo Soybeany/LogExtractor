@@ -1,4 +1,7 @@
-package com.soybeany.log.std.data;
+package com.soybeany.log.impl.handle;
+
+import com.soybeany.log.impl.parser.Flag;
+import com.soybeany.log.impl.parser.Line;
 
 import java.util.LinkedList;
 import java.util.List;

@@ -2,36 +2,38 @@ package com.soybeany.log.query;
 
 import com.soybeany.log.base.BaseManager;
 import com.soybeany.log.base.IIndexCenter;
-import com.soybeany.log.base.ISeniorLine;
+import com.soybeany.log.base.ILoader;
+import com.soybeany.log.base.IRawLine;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class QueryManager<RangeParam, Range, Line, Flag, Log> extends BaseManager<ISeniorLine, Line, Flag> {
+public class QueryManager<RangeParam, Range, Line, Flag, Log> extends BaseManager<IRawLine, Line, Flag> {
 
-    private IIndexCenter<?, ?, RangeParam, Range, ?, ?> mIndexCenter;
-    private ILoader<Range> mLoader;
+    private IIndexCenter<RangeParam, Range, ?, ?> mIndexCenter;
+    private ILoader<Range, ? extends IRawLine> mLoader;
     private ILogFactory<Line, Flag, Log> mLogFactory;
     private final List<IFilter<Log>> mFilters = new LinkedList<IFilter<Log>>();
     private IReporter<Log> mReporter;
 
-    private final ISeniorLine mSLine = new SeniorLine();
+    private final IRawLine mRLine = new RawLine();
     private final RangeParam mRangeParam;
 
-    public QueryManager(RangeParam param) {
-        mRangeParam = param;
+    public QueryManager(RangeParam rangeParam) {
+        mRangeParam = rangeParam;
     }
 
     // ****************************************设置API****************************************
 
-    public void setCenter(IIndexCenter<?, ?, RangeParam, Range, ?, ?> center) {
+    public void setCenter(IIndexCenter<RangeParam, Range, ?, ?> center) {
         mIndexCenter = center;
     }
 
-    public void setLoader(ILoader<Range> loader) {
+    public void setLoader(ILoader<Range, ? extends IRawLine> loader) {
         mLoader = loader;
     }
 
@@ -49,16 +51,21 @@ public class QueryManager<RangeParam, Range, Line, Flag, Log> extends BaseManage
 
     // ****************************************输出API****************************************
 
-    public String getResult() {
+    public String getResult() throws IOException {
         // 检查模块
         checkModules(mIndexCenter, mLoader, mLogFactory, mReporter);
-        // 为加载器设置范围
-        mLoader.setRange(mIndexCenter.getLoadRange(mRangeParam));
-        // 按需补充日志
-        while (mReporter.needMoreLog()) {
-            if (parseLines(new Callback())) {
-                break;
+        // 加载
+        try {
+            mLoader.onOpen();
+            mLoader.setRange(mIndexCenter.getLoadRange(mRangeParam));
+            // 按需补充日志
+            while (mReporter.needMoreLog()) {
+                if (parseLines(new Callback())) {
+                    break;
+                }
             }
+        } finally {
+            mLoader.onClose();
         }
         // 生成报告
         return mReporter.toResult();
@@ -66,20 +73,20 @@ public class QueryManager<RangeParam, Range, Line, Flag, Log> extends BaseManage
 
     // ****************************************重写方法****************************************
 
-    protected ISeniorLine getNextSLine() {
-        return mSLine;
+    protected IRawLine getNextRawLine() {
+        return mRLine;
     }
 
     // ****************************************内部类****************************************
 
-    private class SeniorLine implements ISeniorLine {
-        public String getLineString() {
-            return mLoader.getNextLine();
+    private class RawLine implements IRawLine {
+        public String getLineText() throws IOException {
+            return mLoader.getNextLineText();
         }
     }
 
-    private class Callback implements ICallback<ISeniorLine, Line, Flag> {
-        public boolean onHandleLineAndFlag(ISeniorLine sLine, Line line, Flag flag) {
+    private class Callback implements ICallback<IRawLine, Line, Flag> {
+        public boolean onHandleLineAndFlag(IRawLine rLine, Line line, Flag flag) {
             // 若不是标签对象，则添加行
             if (null == flag) {
                 mLogFactory.addLine(line);

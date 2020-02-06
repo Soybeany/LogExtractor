@@ -1,4 +1,4 @@
-package com.soybeany.log.util;
+package old.util;
 
 import com.soybeany.log.base.ParamException;
 

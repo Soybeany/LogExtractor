@@ -1,4 +1,4 @@
-package com.soybeany.log.std.data;
+package com.soybeany.log.impl.parser;
 
 /**
  * <br>Created by Soybeany on 2020/2/4.

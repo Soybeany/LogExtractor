@@ -1,7 +1,7 @@
 //package com.soybeany.log;
 //
 //import com.soybeany.log.base.ParamException;
-//import com.soybeany.log.data.ExtractParam;
+//import com.soybeany.log.old.data.ExtractParam;
 //import com.soybeany.log.handler.BaseHandler;
 //import com.soybeany.log.handler.HandlerFactory;
 //import com.soybeany.log.loader.ILoader;

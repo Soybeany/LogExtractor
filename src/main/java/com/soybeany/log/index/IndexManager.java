@@ -2,76 +2,83 @@ package com.soybeany.log.index;
 
 import com.soybeany.log.base.BaseManager;
 import com.soybeany.log.base.IIndexCenter;
-import com.soybeany.log.base.ISeniorLine;
+import com.soybeany.log.base.ILoader;
+import com.soybeany.log.base.IRawLine;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-public class IndexManager<PosParam, Position, IndexParam, Index, SLine extends ISeniorLine, Line, Flag> extends BaseManager<SLine, Line, Flag> {
+public class IndexManager<RangeParam, Range, IndexParam, Index, RLine extends IRawLine, Line, Flag> extends BaseManager<RLine, Line, Flag> {
 
-    private IIndexCenter<PosParam, Position, ?, ?, IndexParam, Index> mIndexCenter;
-    private IIndexLoader<Position, SLine> mLoader;
-    private final List<IIndexCreator<Index, SLine, Line>> mLineCreators = new LinkedList<IIndexCreator<Index, SLine, Line>>();
-    private final List<IIndexCreator<Index, SLine, Flag>> mFlagCreators = new LinkedList<IIndexCreator<Index, SLine, Flag>>();
+    private IIndexCenter<RangeParam, Range, IndexParam, Index> mIndexCenter;
+    private ILoader<Range, RLine> mLoader;
+    private final List<IIndexCreator<Index, RLine, Line>> mLineCreators = new LinkedList<IIndexCreator<Index, RLine, Line>>();
+    private final List<IIndexCreator<Index, RLine, Flag>> mFlagCreators = new LinkedList<IIndexCreator<Index, RLine, Flag>>();
 
-    private final PosParam mPosParam;
+    private final RangeParam mRangeParam;
     private final IndexParam mIndexParam;
 
-    public IndexManager(PosParam posParam, IndexParam indexParam) {
-        mPosParam = posParam;
+    public IndexManager(RangeParam rangeParam, IndexParam indexParam) {
+        mRangeParam = rangeParam;
         mIndexParam = indexParam;
     }
 
     // ****************************************设置API****************************************
 
-    public void setCenter(IIndexCenter<PosParam, Position, ?, ?, IndexParam, Index> center) {
+    public void setCenter(IIndexCenter<RangeParam, Range, IndexParam, Index> center) {
         mIndexCenter = center;
     }
 
-    public void setLoader(IIndexLoader<Position, SLine> loader) {
+    public void setLoader(ILoader<Range, RLine> loader) {
         mLoader = loader;
     }
 
-    public void addLineCreator(IIndexCreator<Index, SLine, Line> creator) {
+    public void addLineCreator(IIndexCreator<Index, RLine, Line> creator) {
         mLineCreators.add(creator);
     }
 
-    public void addFlagCreator(IIndexCreator<Index, SLine, Flag> creator) {
+    public void addFlagCreator(IIndexCreator<Index, RLine, Flag> creator) {
         mFlagCreators.add(creator);
     }
 
     // ****************************************输出API****************************************
 
-    public void createIndexes() {
+    public void createIndexes() throws IOException {
         // 检查模块
         checkModules(mIndexCenter, mLoader);
-        // 为加载器设置起点
-        mLoader.setOutset(mIndexCenter.getLoadOutset(mPosParam));
-        // 创建索引
-        parseLines(new Callback());
+        // 加载
+        try {
+            mLoader.onOpen();
+            mLoader.setRange(mIndexCenter.getLoadRange(mRangeParam));
+            // 创建索引
+            parseLines(new Callback());
+        } finally {
+            mLoader.onClose();
+        }
     }
 
-    protected SLine getNextSLine() {
-        return mLoader.getNextSeniorLine();
+    protected RLine getNextRawLine() throws IOException {
+        return mLoader.getNextRawLine();
     }
 
     // ****************************************内部类****************************************
 
-    private class Callback implements ICallback<SLine, Line, Flag> {
+    private class Callback implements ICallback<RLine, Line, Flag> {
         private Index mIndex = mIndexCenter.getIndex(mIndexParam);
 
-        public boolean onHandleLineAndFlag(SLine sLine, Line line, Flag flag) {
+        public boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag) {
             // 建立Line索引
-            for (IIndexCreator<Index, SLine, Line> creator : mLineCreators) {
-                creator.onCreateIndex(mIndex, sLine, line);
+            for (IIndexCreator<Index, RLine, Line> creator : mLineCreators) {
+                creator.onCreateIndex(mIndex, rLine, line);
             }
             // 若为标签，建立标签索引
             if (null != flag) {
-                for (IIndexCreator<Index, SLine, Flag> creator : mFlagCreators) {
-                    creator.onCreateIndex(mIndex, sLine, flag);
+                for (IIndexCreator<Index, RLine, Flag> creator : mFlagCreators) {
+                    creator.onCreateIndex(mIndex, rLine, flag);
                 }
             }
             return false;

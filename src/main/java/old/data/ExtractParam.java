@@ -1,6 +1,6 @@
-package com.soybeany.log.data;
+package old.data;
 
-import com.soybeany.log.util.ToolUtils;
+import old.util.ToolUtils;
 
 import java.util.HashMap;
 import java.util.Map;
