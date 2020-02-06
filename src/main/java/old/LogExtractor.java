@@ -1,7 +1,7 @@
 //package com.soybeany.log;
 //
-//import old.ParamException;
-//import com.soybeany.log.old.data.ExtractParam;
+//import old.DataException;
+//import com.soybeany.log.old.data.ExtractData;
 //
 ///**
 // * 日志提取器(入口类)
@@ -34,9 +34,9 @@
 //        EXCEPTION_LISTENER = listener;
 //    }
 //
-//    public static Result getResult(ExtractParam param) {
+//    public static Result getResult(ExtractData data) {
 //        try {
-//            return innerGetResult(param);
+//            return innerGetResult(data);
 //        } catch (Exception e) {
 //            EXCEPTION_LISTENER.onDefault(e);
 //            return Result.error(HINT_PROVIDER.getUnexpectException(e));
@@ -45,8 +45,8 @@
 //
 //    // ****************************************内部方法****************************************
 //
-//    private static Result innerGetResult(ExtractParam param) throws Exception {
-//        LogManager.Result result = LogManager.getResult(param);
+//    private static Result innerGetResult(ExtractData data) throws Exception {
+//        LogManager.Result result = LogManager.getResult(data);
 //        // 正常系
 //        if (LogManager.CODE_SYNC_SUCCESS.equals(result.code)) {
 //            return Result.norm(result.data, HINT_PROVIDER.getSyncSuccessHint());
@@ -62,9 +62,9 @@
 //        }
 //        // 参数异常
 //        if (LogManager.CODE_PARAM_EXCEPTION.equals(result.code)) {
-//            ParamException e = (ParamException) result.e;
-//            EXCEPTION_LISTENER.onParam(e);
-//            return Result.error(HINT_PROVIDER.getParamExceptionHint(e));
+//            DataException e = (DataException) result.e;
+//            EXCEPTION_LISTENER.onData(e);
+//            return Result.error(HINT_PROVIDER.getDataExceptionHint(e));
 //        }
 //        // 异常系
 //        if (LogManager.CODE_SYNC_FAILURE.equals(result.code)) {
@@ -83,7 +83,7 @@
 //    // ****************************************内部类定义****************************************
 //
 //    public interface IExceptionListener {
-//        void onParam(ParamException e);
+//        void onData(DataException e);
 //
 //        void onDefault(Exception e);
 //    }
@@ -103,7 +103,7 @@
 //
 //        String getQueryFailureHint(Exception e);
 //
-//        String getParamExceptionHint(ParamException e);
+//        String getDataExceptionHint(DataException e);
 //
 //        String getUnexpectException(Exception e);
 //    }
@@ -132,7 +132,7 @@
 //    // ****************************************内部默认实现类****************************************
 //
 //    private static class DefaultExceptionListener implements IExceptionListener {
-//        public void onParam(ParamException e) {
+//        public void onData(DataException e) {
 //            System.out.println("参数异常：" + e.getMessage());
 //        }
 //
@@ -172,7 +172,7 @@
 //            return "任务查询异常:" + e.getMessage();
 //        }
 //
-//        public String getParamExceptionHint(ParamException e) {
+//        public String getDataExceptionHint(DataException e) {
 //            return "参数异常:" + e.getMessage();
 //        }
 //

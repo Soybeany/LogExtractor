@@ -11,12 +11,12 @@ public class ToolUtils {
 
     // ****************************************检查****************************************
 
-    public static void checkExist(Map<String, String> param, String... keys) throws ParamException {
+    public static void checkExist(Map<String, String> data, String... keys) throws ParamException {
         if (null == keys || keys.length == 0) {
             return;
         }
         for (String key : keys) {
-            if (isEmpty(param.get(key))) {
+            if (isEmpty(data.get(key))) {
                 throw new ParamException("缺失必要的参数(" + key + ")");
             }
         }

@@ -1,8 +1,8 @@
 package com.soybeany.log.query;
 
 import com.soybeany.log.base.BaseManager;
-import com.soybeany.log.base.IIndexCenter;
-import com.soybeany.log.base.ILoader;
+import com.soybeany.log.base.BaseIndexCenter;
+import com.soybeany.log.base.BaseLoader;
 import com.soybeany.log.base.IRawLine;
 
 import java.io.IOException;
@@ -12,39 +12,39 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class QueryManager<Param, Range, Line, Flag, Log, Report extends IReport> extends BaseManager<Param, IRawLine, Line, Flag> {
+public class QueryManager<Data, Range, Line, Flag, Log, Report extends IReport> extends BaseManager<Data, IRawLine, Line, Flag> {
 
-    private IIndexCenter<Param, Range, ?> mIndexCenter;
-    private ILoader<Param, Range, ? extends IRawLine> mLoader;
-    private ILogFactory<Param, Line, Flag, Log> mLogFactory;
-    private IFilterFactory<Param, Log> mFilterFactory;
-    private IReporter<Param, Log, Report> mReporter;
+    private BaseIndexCenter<Data, Range, ?> mIndexCenter;
+    private BaseLoader<Data, Range, ? extends IRawLine> mLoader;
+    private BaseLogFactory<Data, Line, Flag, Log> mLogFactory;
+    private BaseFilterFactory<Data, Log> mFilterFactory;
+    private BaseReporter<Data, Log, Report> mReporter;
 
     private final IRawLine mRLine = new RawLine();
 
-    public QueryManager(Param param) {
-        super(param);
+    public QueryManager(Data data) {
+        super(data);
     }
 
     // ****************************************设置API****************************************
 
-    public void setCenter(IIndexCenter<Param, Range, ?> center) {
+    public void setCenter(BaseIndexCenter<Data, Range, ?> center) {
         mIndexCenter = center;
     }
 
-    public void setLoader(ILoader<Param, Range, ? extends IRawLine> loader) {
+    public void setLoader(BaseLoader<Data, Range, ? extends IRawLine> loader) {
         mLoader = loader;
     }
 
-    public void setLogFactory(ILogFactory<Param, Line, Flag, Log> factory) {
+    public void setLogFactory(BaseLogFactory<Data, Line, Flag, Log> factory) {
         mLogFactory = factory;
     }
 
-    public void setFilterFactory(IFilterFactory<Param, Log> factory) {
+    public void setFilterFactory(BaseFilterFactory<Data, Log> factory) {
         mFilterFactory = factory;
     }
 
-    public void setReporter(IReporter<Param, Log, Report> reporter) {
+    public void setReporter(BaseReporter<Data, Log, Report> reporter) {
         mReporter = reporter;
     }
 
@@ -55,8 +55,7 @@ public class QueryManager<Param, Range, Line, Flag, Log, Report extends IReport>
         checkAndSetupModules(Arrays.asList(mIndexCenter, mLoader, mLogFactory, mFilterFactory, mReporter));
         // 加载
         try {
-            mLoader.onOpen();
-            mLoader.setRange(mIndexCenter.getLoadRange());
+            mLoader.onOpen(mIndexCenter.getLoadRange());
             // 按需补充日志
             while (mReporter.needMoreLog()) {
                 if (parseLines(new Callback())) {
@@ -85,7 +84,7 @@ public class QueryManager<Param, Range, Line, Flag, Log, Report extends IReport>
     }
 
     private class Callback implements ICallback<IRawLine, Line, Flag> {
-        private List<IFilter<Param, Log>> mFilters = mFilterFactory.getFilters();
+        private List<BaseFilter<Data, Log>> mFilters = mFilterFactory.getFilters();
 
         public boolean onHandleLineAndFlag(IRawLine rLine, Line line, Flag flag) {
             // 若不是标签对象，则添加行
@@ -100,7 +99,7 @@ public class QueryManager<Param, Range, Line, Flag, Log, Report extends IReport>
                 return false;
             }
             // 过滤日志对象
-            for (IFilter<Param, Log> filter : mFilters) {
+            for (BaseFilter<Data, Log> filter : mFilters) {
                 if (filter.isFiltered(log)) {
                     return false;
                 }

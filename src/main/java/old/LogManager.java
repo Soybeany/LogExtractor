@@ -1,7 +1,7 @@
 //package com.soybeany.log;
 //
-//import old.ParamException;
-//import com.soybeany.log.old.data.ExtractParam;
+//import old.DataException;
+//import com.soybeany.log.old.data.ExtractData;
 //import com.soybeany.log.handler.BaseHandler;
 //import com.soybeany.log.handler.HandlerFactory;
 //import com.soybeany.log.loader.ILoader;
@@ -63,28 +63,28 @@
 //    /**
 //     * 参数异常
 //     */
-//    static final String CODE_PARAM_EXCEPTION = "param_exception";
+//    static final String CODE_PARAM_EXCEPTION = "data_exception";
 //
 //    // ****************************************成员变量****************************************
 //
-//    private static final Set<String> MODE_CONTAINER = new HashSet<String>(Arrays.asList(ExtractParam.MODE_SYNC, ExtractParam.MODE_ASYNC, ExtractParam.MODE_QUERY));
+//    private static final Set<String> MODE_CONTAINER = new HashSet<String>(Arrays.asList(ExtractData.MODE_SYNC, ExtractData.MODE_ASYNC, ExtractData.MODE_QUERY));
 //    private static final Executor EXECUTOR = Executors.newCachedThreadPool();
 //
 //    // ****************************************公开的API****************************************
 //
-//    static Result getResult(ExtractParam param) {
-//        return innerGetResult(param);
+//    static Result getResult(ExtractData data) {
+//        return innerGetResult(data);
 //    }
 //
 //    // ****************************************内部方法****************************************
 //
-//    private static Result innerGetResult(ExtractParam eParam) {
+//    private static Result innerGetResult(ExtractData eData) {
 //        // 创建处理类
 //        try {
-//            ILoader loader = LoaderFactory.get(eParam.loader);
-//            IParser parser = ParserFactory.get(eParam.parser);
-//            List<BaseHandler> handlers = HandlerFactory.get(eParam.handler);
-//            IReporter reporter = ReporterFactory.get(eParam.reporter);
+//            ILoader loader = LoaderFactory.get(eData.loader);
+//            IParser parser = ParserFactory.get(eData.parser);
+//            List<BaseHandler> handlers = HandlerFactory.get(eData.handler);
+//            IReporter reporter = ReporterFactory.get(eData.reporter);
 //            // 加载文件
 //            String nextLine = loader.getNextLine();
 //            while (null != nextLine) {
@@ -92,7 +92,7 @@
 //                nextLine = loader.getNextLine();
 //            }
 //            return Result.norm()
-//        } catch (ParamException e) {
+//        } catch (DataException e) {
 //            return Result.error(CODE_PARAM_EXCEPTION, e);
 //        }
 //    }

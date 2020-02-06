@@ -12,6 +12,7 @@ public class SFileRawLine implements IRawLine {
 
     private String mLine;
 
+    @Override
     public String getLineText() {
         return mLine;
     }

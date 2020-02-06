@@ -1,8 +1,8 @@
 package com.soybeany.log.base;
 
 
-import com.soybeany.log.query.parser.IFlagParser;
-import com.soybeany.log.query.parser.ILineParser;
+import com.soybeany.log.query.parser.BaseFlagParser;
+import com.soybeany.log.query.parser.BaseLineParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,41 +11,41 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-public abstract class BaseManager<Param, RLine extends IRawLine, Line, Flag> {
+public abstract class BaseManager<Data, RLine extends IRawLine, Line, Flag> {
 
-    private ILineParser<Param, Line> mLineParser;
-    private IFlagParser<Param, Line, Flag> mFlagParser;
+    private BaseLineParser<Data, Line> mLineParser;
+    private BaseFlagParser<Data, Line, Flag> mFlagParser;
 
-    private Param mParam;
+    private Data mData;
 
-    public BaseManager(Param param) {
-        mParam = param;
+    public BaseManager(Data data) {
+        mData = data;
     }
 
     // ****************************************设置API****************************************
 
-    public void setLineParser(ILineParser<Param, Line> parser) {
+    public void setLineParser(BaseLineParser<Data, Line> parser) {
         mLineParser = parser;
     }
 
-    public void setFlagParser(IFlagParser<Param, Line, Flag> parser) {
+    public void setFlagParser(BaseFlagParser<Data, Line, Flag> parser) {
         mFlagParser = parser;
     }
 
     // ****************************************子类调用****************************************
 
-    protected void checkAndSetupModules(List<IParamRecipient<Param>> modules) {
-        List<IParamRecipient<Param>> moduleList = new ArrayList<IParamRecipient<Param>>(modules);
+    protected void checkAndSetupModules(List<Module<Data>> modules) {
+        List<Module<Data>> moduleList = new ArrayList<Module<Data>>(modules);
         // 设置额外检测的模块
         moduleList.add(mLineParser);
         moduleList.add(mFlagParser);
         // 检测并设置
         for (int i = 0; i < moduleList.size(); i++) {
-            IParamRecipient<Param> recipient = moduleList.get(i);
-            if (null == recipient) {
+            Module<Data> module = moduleList.get(i);
+            if (null == module) {
                 throw new RuntimeException("模块设置不完整(" + i + ")");
             }
-            recipient.onInit(mParam);
+            module.onInit(mData);
         }
     }
 
@@ -84,8 +84,8 @@ public abstract class BaseManager<Param, RLine extends IRawLine, Line, Flag> {
 
     protected interface ICallback<RLine extends IRawLine, Line, Flag> {
         /**
-         * @param line 不为null
-         * @param flag 此行对应为的标签，可为null
+         * @data line 不为null
+         * @data flag 此行对应为的标签，可为null
          * @return 是否需要中断
          */
         boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag);

@@ -1,21 +1,21 @@
 package com.soybeany.log.query;
 
 import com.google.gson.Gson;
-import com.soybeany.log.base.IIndexCenter;
-import com.soybeany.log.base.ILoader;
+import com.soybeany.log.base.BaseIndexCenter;
+import com.soybeany.log.base.BaseLoader;
 import com.soybeany.log.impl.handle.Log;
-import com.soybeany.log.impl.loader.single.ISFileParam;
+import com.soybeany.log.impl.loader.single.ISFileData;
 import com.soybeany.log.impl.loader.single.SFileRange;
 import com.soybeany.log.impl.loader.single.SFileRawLine;
 import com.soybeany.log.impl.loader.single.SingleFileLoader;
 import com.soybeany.log.impl.parser.Flag;
 import com.soybeany.log.impl.parser.Line;
 import com.soybeany.log.impl.parser.MetaInfo;
-import com.soybeany.log.index.ICreatorFactory;
-import com.soybeany.log.index.IIndexCreator;
+import com.soybeany.log.index.BaseCreatorFactory;
+import com.soybeany.log.index.BaseIndexCreator;
 import com.soybeany.log.index.IndexManager;
-import com.soybeany.log.query.parser.IFlagParser;
-import com.soybeany.log.query.parser.ILineParser;
+import com.soybeany.log.query.parser.BaseFlagParser;
+import com.soybeany.log.query.parser.BaseLineParser;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -31,12 +31,12 @@ class QueryManagerTest {
 
     private IndexCenter mIndexCenter = new IndexCenter();
 
-    private ILoader<Param, SFileRange, SFileRawLine> mLoader = new SingleFileLoader<Param>();
+    private BaseLoader<Data, SFileRange, SFileRawLine> mLoader = new SingleFileLoader<Data>();
 
     @Test
     public void testIndex() throws IOException {
-        Param param = new Param();
-        IndexManager<Param, SFileRange, Index, SFileRawLine, Line, Flag> manager = new IndexManager<Param, SFileRange, Index, SFileRawLine, Line, Flag>(param);
+        Data data = new Data();
+        IndexManager<Data, SFileRange, Index, SFileRawLine, Line, Flag> manager = new IndexManager<Data, SFileRange, Index, SFileRawLine, Line, Flag>(data);
         manager.setCenter(mIndexCenter);
         manager.setLoader(mLoader);
         manager.setLineParser(new LineParser());
@@ -47,8 +47,8 @@ class QueryManagerTest {
 
     @Test
     public void testQuery() throws IOException {
-        Param param = new Param();
-        QueryManager<Param, SFileRange, Line, Flag, Log, Report> manager = new QueryManager<Param, SFileRange, Line, Flag, Log, Report>(param);
+        Data data = new Data();
+        QueryManager<Data, SFileRange, Line, Flag, Log, Report> manager = new QueryManager<Data, SFileRange, Line, Flag, Log, Report>(data);
         manager.setCenter(mIndexCenter);
         manager.setLoader(mLoader);
         manager.setLineParser(new LineParser());
@@ -62,7 +62,7 @@ class QueryManagerTest {
 
     // ****************************************模块****************************************
 
-    private static class IndexCenter implements IIndexCenter<Param, SFileRange, Index> {
+    private static class IndexCenter extends BaseIndexCenter<Data, SFileRange, Index> {
 
         private final Index mIndex = new Index();
 
@@ -74,12 +74,12 @@ class QueryManagerTest {
             return mIndex;
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
-    private static class LineParser implements ILineParser<Param, Line> {
+    private static class LineParser extends BaseLineParser<Data, Line> {
 
         private static Pattern PATTERN = Pattern.compile("(\\d+)-(\\d+)-(.*)");
 
@@ -99,12 +99,12 @@ class QueryManagerTest {
             line.content += "\n" + content;
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
-    private static class FlagParser implements IFlagParser<Param, Line, Flag> {
+    private static class FlagParser extends BaseFlagParser<Data, Line, Flag> {
 
         private static Pattern PATTERN = Pattern.compile("FLAG-(.+)-(.+):(.+)");
 
@@ -120,12 +120,12 @@ class QueryManagerTest {
             return FlagFactory.get(flag);
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
-    private static class LogFactory implements ILogFactory<Param, Line, Flag, Log> {
+    private static class LogFactory extends BaseLogFactory<Data, Line, Flag, Log> {
 
         private Map<String, Log> mLogMap = new HashMap<String, Log>();
 
@@ -156,12 +156,12 @@ class QueryManagerTest {
             }
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
-    private static class Reporter implements IReporter<Param, Log, Report> {
+    private static class Reporter extends BaseReporter<Data, Log, Report> {
 
         private static final Gson GSON = new Gson();
         private final List<Log> mResultList = new LinkedList<Log>();
@@ -178,7 +178,7 @@ class QueryManagerTest {
             return new Report(GSON.toJson(mResultList));
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
@@ -194,43 +194,43 @@ class QueryManagerTest {
 
     }
 
-    private static class FilterFactory implements IFilterFactory<Param, Log> {
+    private static class FilterFactory extends BaseFilterFactory<Data, Log> {
 
-        public List<IFilter<Param, Log>> getFilters() {
+        public List<BaseFilter<Data, Log>> getFilters() {
             return Collections.emptyList();
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
-    private static class Filter implements IFilter<Param, Log> {
+    private static class Filter extends BaseFilter<Data, Log> {
         public boolean isFiltered(Log log) {
             return "100".equals(log.logId);
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
-    private static class CreatorFactory implements ICreatorFactory<Param, Index, SFileRawLine, Line, Flag> {
+    private static class CreatorFactory extends BaseCreatorFactory<Data, Index, SFileRawLine, Line, Flag> {
 
-        public List<? extends IIndexCreator<Param, Index, SFileRawLine, Line>> getLineCreators() {
+        public List<? extends BaseIndexCreator<Data, Index, SFileRawLine, Line>> getLineCreators() {
             return Collections.singletonList(new LineIndexCreator());
         }
 
-        public List<? extends IIndexCreator<Param, Index, SFileRawLine, Flag>> getFlagCreators() {
+        public List<? extends BaseIndexCreator<Data, Index, SFileRawLine, Flag>> getFlagCreators() {
             return Collections.singletonList(new FlagIndexCreator());
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
-    private static class LineIndexCreator implements IIndexCreator<Param, Index, SFileRawLine, Line> {
+    private static class LineIndexCreator extends BaseIndexCreator<Data, Index, SFileRawLine, Line> {
         public void onCreateIndex(Index index, SFileRawLine rLine, Line line) {
             int time = Integer.parseInt(line.info.time);
             if (null == index.time[time]) {
@@ -238,29 +238,29 @@ class QueryManagerTest {
             }
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
-    private static class FlagIndexCreator implements IIndexCreator<Param, Index, SFileRawLine, Flag> {
+    private static class FlagIndexCreator extends BaseIndexCreator<Data, Index, SFileRawLine, Flag> {
         public void onCreateIndex(Index index, SFileRawLine rLine, Flag flag) {
 
         }
 
-        public void onInit(Param param) {
+        public void onInit(Data data) {
 
         }
     }
 
     // ****************************************模型****************************************
 
-    private static class Param implements ISFileParam {
+    private static class Data implements ISFileData {
         public File getFileToLoad() {
             return new File("D:\\source.txt");
         }
 
-        public String getFileCharSet() {
+        public String getFileCharset() {
             return "utf-8";
         }
     }
@@ -277,7 +277,7 @@ class QueryManagerTest {
         private static Pattern PATTERN = Pattern.compile("(\\d+) (.+) (.+)");
 
         String url;
-        String param;
+        String data;
         String userNo;
 
         RequestFlag(FlagInfo flag) {
@@ -288,7 +288,7 @@ class QueryManagerTest {
             }
             userNo = matcher.group(1);
             url = matcher.group(2);
-            param = matcher.group(3);
+            data = matcher.group(3);
         }
     }
 

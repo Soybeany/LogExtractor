@@ -7,6 +7,6 @@ public class RequestFlag {
 
     public String sender;
     public String url;
-    public String param;
+    public String data;
 
 }
