@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public interface ILoader<Range, RLine extends IRawLine> {
+public interface ILoader<Param, Range, RLine extends IRawLine> extends IParamRecipient<Param> {
 
     /**
      * 设置加载的范围

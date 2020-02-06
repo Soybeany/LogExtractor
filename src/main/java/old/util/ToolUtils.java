@@ -1,6 +1,6 @@
 package old.util;
 
-import com.soybeany.log.base.ParamException;
+import old.ParamException;
 
 import java.util.Map;
 

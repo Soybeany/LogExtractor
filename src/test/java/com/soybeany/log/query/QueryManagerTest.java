@@ -4,12 +4,14 @@ import com.google.gson.Gson;
 import com.soybeany.log.base.IIndexCenter;
 import com.soybeany.log.base.ILoader;
 import com.soybeany.log.impl.handle.Log;
+import com.soybeany.log.impl.loader.single.ISFileParam;
 import com.soybeany.log.impl.loader.single.SFileRange;
 import com.soybeany.log.impl.loader.single.SFileRawLine;
 import com.soybeany.log.impl.loader.single.SingleFileLoader;
 import com.soybeany.log.impl.parser.Flag;
 import com.soybeany.log.impl.parser.Line;
 import com.soybeany.log.impl.parser.MetaInfo;
+import com.soybeany.log.index.ICreatorFactory;
 import com.soybeany.log.index.IIndexCreator;
 import com.soybeany.log.index.IndexManager;
 import com.soybeany.log.query.parser.IFlagParser;
@@ -18,10 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,50 +31,55 @@ class QueryManagerTest {
 
     private IndexCenter mIndexCenter = new IndexCenter();
 
-    private ILoader<SFileRange, SFileRawLine> mLoader = new SingleFileLoader(new File("D:\\source.txt"));
+    private ILoader<Param, SFileRange, SFileRawLine> mLoader = new SingleFileLoader<Param>();
 
     @Test
     public void testIndex() throws IOException {
-        IndexManager<RangeParam, SFileRange, IndexParam, Index, SFileRawLine, Line, Flag> manager = new IndexManager<RangeParam, SFileRange, IndexParam, Index, SFileRawLine, Line, Flag>(null, null);
+        Param param = new Param();
+        IndexManager<Param, SFileRange, Index, SFileRawLine, Line, Flag> manager = new IndexManager<Param, SFileRange, Index, SFileRawLine, Line, Flag>(param);
         manager.setCenter(mIndexCenter);
         manager.setLoader(mLoader);
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
-        manager.addLineCreator(new LineIndexCreator());
-        manager.addFlagCreator(new FlagIndexCreator());
+        manager.setCreatorFactory(new CreatorFactory());
         manager.createIndexes();
     }
 
     @Test
     public void testQuery() throws IOException {
-        QueryManager<RangeParam, SFileRange, Line, Flag, Log> manager = new QueryManager<RangeParam, SFileRange, Line, Flag, Log>(null);
+        Param param = new Param();
+        QueryManager<Param, SFileRange, Line, Flag, Log, Report> manager = new QueryManager<Param, SFileRange, Line, Flag, Log, Report>(param);
         manager.setCenter(mIndexCenter);
         manager.setLoader(mLoader);
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
         manager.setLogFactory(new LogFactory());
         manager.setReporter(new Reporter());
-//        manager.addFilter(new Filter());
-        String result = manager.getResult();
-        System.out.println(result);
+        manager.setFilterFactory(new FilterFactory());
+        Report report = manager.query();
+        System.out.println(report.json);
     }
 
     // ****************************************模块****************************************
 
-    private static class IndexCenter implements IIndexCenter<RangeParam, SFileRange, IndexParam, Index> {
+    private static class IndexCenter implements IIndexCenter<Param, SFileRange, Index> {
 
         private final Index mIndex = new Index();
 
-        public SFileRange getLoadRange(RangeParam param) {
+        public SFileRange getLoadRange() {
             return null;
         }
 
-        public Index getIndex(IndexParam param) {
+        public Index getIndex() {
             return mIndex;
+        }
+
+        public void onInit(Param param) {
+
         }
     }
 
-    private static class LineParser implements ILineParser<Line> {
+    private static class LineParser implements ILineParser<Param, Line> {
 
         private static Pattern PATTERN = Pattern.compile("(\\d+)-(\\d+)-(.*)");
 
@@ -95,9 +99,12 @@ class QueryManagerTest {
             line.content += "\n" + content;
         }
 
+        public void onInit(Param param) {
+
+        }
     }
 
-    private static class FlagParser implements IFlagParser<Line, Flag> {
+    private static class FlagParser implements IFlagParser<Param, Line, Flag> {
 
         private static Pattern PATTERN = Pattern.compile("FLAG-(.+)-(.+):(.+)");
 
@@ -113,9 +120,12 @@ class QueryManagerTest {
             return FlagFactory.get(flag);
         }
 
+        public void onInit(Param param) {
+
+        }
     }
 
-    private static class LogFactory implements ILogFactory<Line, Flag, Log> {
+    private static class LogFactory implements ILogFactory<Param, Line, Flag, Log> {
 
         private Map<String, Log> mLogMap = new HashMap<String, Log>();
 
@@ -146,9 +156,12 @@ class QueryManagerTest {
             }
         }
 
+        public void onInit(Param param) {
+
+        }
     }
 
-    private static class Reporter implements IReporter<Log> {
+    private static class Reporter implements IReporter<Param, Log, Report> {
 
         private static final Gson GSON = new Gson();
         private final List<Log> mResultList = new LinkedList<Log>();
@@ -161,8 +174,12 @@ class QueryManagerTest {
             mResultList.add(log);
         }
 
-        public String toResult() {
-            return GSON.toJson(mResultList);
+        public Report getReport() {
+            return new Report(GSON.toJson(mResultList));
+        }
+
+        public void onInit(Param param) {
+
         }
     }
 
@@ -177,28 +194,76 @@ class QueryManagerTest {
 
     }
 
-    private static class Filter implements IFilter<Log> {
-        public boolean isFiltered(Log log) {
-            return "100".equals(log.logId);
+    private static class FilterFactory implements IFilterFactory<Param, Log> {
+
+        public List<IFilter<Param, Log>> getFilters() {
+            return Collections.emptyList();
+        }
+
+        public void onInit(Param param) {
+
         }
     }
 
-    private static class LineIndexCreator implements IIndexCreator<Index, SFileRawLine, Line> {
+    private static class Filter implements IFilter<Param, Log> {
+        public boolean isFiltered(Log log) {
+            return "100".equals(log.logId);
+        }
+
+        public void onInit(Param param) {
+
+        }
+    }
+
+    private static class CreatorFactory implements ICreatorFactory<Param, Index, SFileRawLine, Line, Flag> {
+
+        public List<? extends IIndexCreator<Param, Index, SFileRawLine, Line>> getLineCreators() {
+            return Collections.singletonList(new LineIndexCreator());
+        }
+
+        public List<? extends IIndexCreator<Param, Index, SFileRawLine, Flag>> getFlagCreators() {
+            return Collections.singletonList(new FlagIndexCreator());
+        }
+
+        public void onInit(Param param) {
+
+        }
+    }
+
+    private static class LineIndexCreator implements IIndexCreator<Param, Index, SFileRawLine, Line> {
         public void onCreateIndex(Index index, SFileRawLine rLine, Line line) {
             int time = Integer.parseInt(line.info.time);
             if (null == index.time[time]) {
                 index.time[time] = SFileRange.from(rLine.getStartPointer());
             }
         }
+
+        public void onInit(Param param) {
+
+        }
     }
 
-    private static class FlagIndexCreator implements IIndexCreator<Index, SFileRawLine, Flag> {
+    private static class FlagIndexCreator implements IIndexCreator<Param, Index, SFileRawLine, Flag> {
         public void onCreateIndex(Index index, SFileRawLine rLine, Flag flag) {
+
+        }
+
+        public void onInit(Param param) {
 
         }
     }
 
     // ****************************************模型****************************************
+
+    private static class Param implements ISFileParam {
+        public File getFileToLoad() {
+            return new File("D:\\source.txt");
+        }
+
+        public String getFileCharSet() {
+            return "utf-8";
+        }
+    }
 
     private static class FlagInfo extends Flag {
         String detail;
@@ -227,18 +292,23 @@ class QueryManagerTest {
         }
     }
 
-    private static class RangeParam {
-
-    }
-
-    private static class IndexParam {
-
-    }
-
     private static class Index {
         SFileRange[] time = new SFileRange[5];
         Map<String, SFileRange> thread = new HashMap<String, SFileRange>();
         Map<String, SFileRange> user = new HashMap<String, SFileRange>();
         Map<String, SFileRange> url = new HashMap<String, SFileRange>();
+    }
+
+    private static class Report implements IReport {
+
+        public String json;
+
+        public String getTaskId() {
+            return null;
+        }
+
+        public Report(String json) {
+            this.json = json;
+        }
     }
 }

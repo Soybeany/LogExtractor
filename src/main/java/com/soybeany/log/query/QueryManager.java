@@ -6,58 +6,57 @@ import com.soybeany.log.base.ILoader;
 import com.soybeany.log.base.IRawLine;
 
 import java.io.IOException;
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class QueryManager<RangeParam, Range, Line, Flag, Log> extends BaseManager<IRawLine, Line, Flag> {
+public class QueryManager<Param, Range, Line, Flag, Log, Report extends IReport> extends BaseManager<Param, IRawLine, Line, Flag> {
 
-    private IIndexCenter<RangeParam, Range, ?, ?> mIndexCenter;
-    private ILoader<Range, ? extends IRawLine> mLoader;
-    private ILogFactory<Line, Flag, Log> mLogFactory;
-    private final List<IFilter<Log>> mFilters = new LinkedList<IFilter<Log>>();
-    private IReporter<Log> mReporter;
+    private IIndexCenter<Param, Range, ?> mIndexCenter;
+    private ILoader<Param, Range, ? extends IRawLine> mLoader;
+    private ILogFactory<Param, Line, Flag, Log> mLogFactory;
+    private IFilterFactory<Param, Log> mFilterFactory;
+    private IReporter<Param, Log, Report> mReporter;
 
     private final IRawLine mRLine = new RawLine();
-    private final RangeParam mRangeParam;
 
-    public QueryManager(RangeParam rangeParam) {
-        mRangeParam = rangeParam;
+    public QueryManager(Param param) {
+        super(param);
     }
 
     // ****************************************设置API****************************************
 
-    public void setCenter(IIndexCenter<RangeParam, Range, ?, ?> center) {
+    public void setCenter(IIndexCenter<Param, Range, ?> center) {
         mIndexCenter = center;
     }
 
-    public void setLoader(ILoader<Range, ? extends IRawLine> loader) {
+    public void setLoader(ILoader<Param, Range, ? extends IRawLine> loader) {
         mLoader = loader;
     }
 
-    public void setLogFactory(ILogFactory<Line, Flag, Log> factory) {
+    public void setLogFactory(ILogFactory<Param, Line, Flag, Log> factory) {
         mLogFactory = factory;
     }
 
-    public void setReporter(IReporter<Log> reporter) {
-        mReporter = reporter;
+    public void setFilterFactory(IFilterFactory<Param, Log> factory) {
+        mFilterFactory = factory;
     }
 
-    public void addFilter(IFilter<Log> filter) {
-        mFilters.add(filter);
+    public void setReporter(IReporter<Param, Log, Report> reporter) {
+        mReporter = reporter;
     }
 
     // ****************************************输出API****************************************
 
-    public String getResult() throws IOException {
+    public Report query() throws IOException {
         // 检查模块
-        checkModules(mIndexCenter, mLoader, mLogFactory, mReporter);
+        checkAndSetupModules(Arrays.asList(mIndexCenter, mLoader, mLogFactory, mFilterFactory, mReporter));
         // 加载
         try {
             mLoader.onOpen();
-            mLoader.setRange(mIndexCenter.getLoadRange(mRangeParam));
+            mLoader.setRange(mIndexCenter.getLoadRange());
             // 按需补充日志
             while (mReporter.needMoreLog()) {
                 if (parseLines(new Callback())) {
@@ -68,7 +67,7 @@ public class QueryManager<RangeParam, Range, Line, Flag, Log> extends BaseManage
             mLoader.onClose();
         }
         // 生成报告
-        return mReporter.toResult();
+        return mReporter.getReport();
     }
 
     // ****************************************重写方法****************************************
@@ -86,6 +85,8 @@ public class QueryManager<RangeParam, Range, Line, Flag, Log> extends BaseManage
     }
 
     private class Callback implements ICallback<IRawLine, Line, Flag> {
+        private List<IFilter<Param, Log>> mFilters = mFilterFactory.getFilters();
+
         public boolean onHandleLineAndFlag(IRawLine rLine, Line line, Flag flag) {
             // 若不是标签对象，则添加行
             if (null == flag) {
@@ -99,7 +100,7 @@ public class QueryManager<RangeParam, Range, Line, Flag, Log> extends BaseManage
                 return false;
             }
             // 过滤日志对象
-            for (IFilter<Log> filter : mFilters) {
+            for (IFilter<Param, Log> filter : mFilters) {
                 if (filter.isFiltered(log)) {
                     return false;
                 }

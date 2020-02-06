@@ -9,7 +9,7 @@ public class SFileRange {
     public long end;
 
     public static SFileRange from(long start) {
-        return new SFileRange(start, -1);
+        return new SFileRange(start, Long.MAX_VALUE);
     }
 
     public static SFileRange to(long end) {

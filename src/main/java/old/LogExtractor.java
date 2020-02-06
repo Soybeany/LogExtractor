@@ -1,6 +1,6 @@
 //package com.soybeany.log;
 //
-//import com.soybeany.log.base.ParamException;
+//import old.ParamException;
 //import com.soybeany.log.old.data.ExtractParam;
 //
 ///**

@@ -6,54 +6,45 @@ import com.soybeany.log.base.ILoader;
 import com.soybeany.log.base.IRawLine;
 
 import java.io.IOException;
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-public class IndexManager<RangeParam, Range, IndexParam, Index, RLine extends IRawLine, Line, Flag> extends BaseManager<RLine, Line, Flag> {
+public class IndexManager<Param, Range, Index, RLine extends IRawLine, Line, Flag> extends BaseManager<Param, RLine, Line, Flag> {
 
-    private IIndexCenter<RangeParam, Range, IndexParam, Index> mIndexCenter;
-    private ILoader<Range, RLine> mLoader;
-    private final List<IIndexCreator<Index, RLine, Line>> mLineCreators = new LinkedList<IIndexCreator<Index, RLine, Line>>();
-    private final List<IIndexCreator<Index, RLine, Flag>> mFlagCreators = new LinkedList<IIndexCreator<Index, RLine, Flag>>();
+    private IIndexCenter<Param, Range, Index> mIndexCenter;
+    private ILoader<Param, Range, RLine> mLoader;
+    private ICreatorFactory<Param, Index, RLine, Line, Flag> mCreatorFactory;
 
-    private final RangeParam mRangeParam;
-    private final IndexParam mIndexParam;
-
-    public IndexManager(RangeParam rangeParam, IndexParam indexParam) {
-        mRangeParam = rangeParam;
-        mIndexParam = indexParam;
+    public IndexManager(Param param) {
+        super(param);
     }
 
     // ****************************************设置API****************************************
 
-    public void setCenter(IIndexCenter<RangeParam, Range, IndexParam, Index> center) {
+    public void setCenter(IIndexCenter<Param, Range, Index> center) {
         mIndexCenter = center;
     }
 
-    public void setLoader(ILoader<Range, RLine> loader) {
+    public void setLoader(ILoader<Param, Range, RLine> loader) {
         mLoader = loader;
     }
 
-    public void addLineCreator(IIndexCreator<Index, RLine, Line> creator) {
-        mLineCreators.add(creator);
-    }
-
-    public void addFlagCreator(IIndexCreator<Index, RLine, Flag> creator) {
-        mFlagCreators.add(creator);
+    public void setCreatorFactory(ICreatorFactory<Param, Index, RLine, Line, Flag> factory) {
+        mCreatorFactory = factory;
     }
 
     // ****************************************输出API****************************************
 
     public void createIndexes() throws IOException {
         // 检查模块
-        checkModules(mIndexCenter, mLoader);
+        checkAndSetupModules(Arrays.asList(mIndexCenter, mLoader, mCreatorFactory));
         // 加载
         try {
             mLoader.onOpen();
-            mLoader.setRange(mIndexCenter.getLoadRange(mRangeParam));
+            mLoader.setRange(mIndexCenter.getLoadRange());
             // 创建索引
             parseLines(new Callback());
         } finally {
@@ -68,16 +59,18 @@ public class IndexManager<RangeParam, Range, IndexParam, Index, RLine extends IR
     // ****************************************内部类****************************************
 
     private class Callback implements ICallback<RLine, Line, Flag> {
-        private Index mIndex = mIndexCenter.getIndex(mIndexParam);
+        private Index mIndex = mIndexCenter.getIndex();
+        private List<? extends IIndexCreator<Param, Index, RLine, Line>> mLineCreators = mCreatorFactory.getLineCreators();
+        private List<? extends IIndexCreator<Param, Index, RLine, Flag>> mFlagCreators = mCreatorFactory.getFlagCreators();
 
         public boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag) {
             // 建立Line索引
-            for (IIndexCreator<Index, RLine, Line> creator : mLineCreators) {
+            for (IIndexCreator<Param, Index, RLine, Line> creator : mLineCreators) {
                 creator.onCreateIndex(mIndex, rLine, line);
             }
             // 若为标签，建立标签索引
             if (null != flag) {
-                for (IIndexCreator<Index, RLine, Flag> creator : mFlagCreators) {
+                for (IIndexCreator<Param, Index, RLine, Flag> creator : mFlagCreators) {
                     creator.onCreateIndex(mIndex, rLine, flag);
                 }
             }

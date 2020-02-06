@@ -5,40 +5,47 @@ import com.soybeany.log.query.parser.IFlagParser;
 import com.soybeany.log.query.parser.ILineParser;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-public abstract class BaseManager<RLine extends IRawLine, Line, Flag> {
+public abstract class BaseManager<Param, RLine extends IRawLine, Line, Flag> {
 
-    private ILineParser<Line> mLineParser;
-    private IFlagParser<Line, Flag> mFlagParser;
+    private ILineParser<Param, Line> mLineParser;
+    private IFlagParser<Param, Line, Flag> mFlagParser;
+
+    private Param mParam;
+
+    public BaseManager(Param param) {
+        mParam = param;
+    }
 
     // ****************************************设置API****************************************
 
-    public void setLineParser(ILineParser<Line> parser) {
+    public void setLineParser(ILineParser<Param, Line> parser) {
         mLineParser = parser;
     }
 
-    public void setFlagParser(IFlagParser<Line, Flag> parser) {
+    public void setFlagParser(IFlagParser<Param, Line, Flag> parser) {
         mFlagParser = parser;
     }
 
     // ****************************************子类调用****************************************
 
-    protected void checkModules(Object... modules) {
-        List<Object> moduleList = new LinkedList<Object>(Arrays.asList(modules));
+    protected void checkAndSetupModules(List<IParamRecipient<Param>> modules) {
+        List<IParamRecipient<Param>> moduleList = new ArrayList<IParamRecipient<Param>>(modules);
         // 设置额外检测的模块
         moduleList.add(mLineParser);
         moduleList.add(mFlagParser);
-        // 开始检测
+        // 检测并设置
         for (int i = 0; i < moduleList.size(); i++) {
-            if (null == moduleList.get(i)) {
+            IParamRecipient<Param> recipient = moduleList.get(i);
+            if (null == recipient) {
                 throw new RuntimeException("模块设置不完整(" + i + ")");
             }
+            recipient.onInit(mParam);
         }
     }
 

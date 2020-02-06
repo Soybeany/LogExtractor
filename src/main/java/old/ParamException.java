@@ -1,4 +1,4 @@
-package com.soybeany.log.base;
+package old;
 
 /**
  * <br>Created by Soybeany on 2020/2/4.

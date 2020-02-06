@@ -11,12 +11,12 @@ public class FlagWriter {
         DELEGATE = delegate;
     }
 
-    public static void write(String flag, String content) {
-        DELEGATE.onWrite(flag, content);
+    public static void write(String flagInfo, String detail) {
+        DELEGATE.onWrite(flagInfo, detail);
     }
 
     public interface IDelegate {
-        void onWrite(String flag, String content);
+        void onWrite(String flagInfo, String detail);
     }
 
 }

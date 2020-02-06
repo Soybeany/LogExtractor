@@ -9,29 +9,22 @@ import java.io.RandomAccessFile;
 /**
  * <br>Created by Soybeany on 2020/2/6.
  */
-public class SingleFileLoader implements ILoader<SFileRange, SFileRawLine> {
-
-    private final File mFile;
-    private final String mCharSet;
+public class SingleFileLoader<Param extends ISFileParam> implements ILoader<Param, SFileRange, SFileRawLine> {
 
     private final SFileRawLine mRawLine = new SFileRawLine();
     private RandomAccessFile mRaf;
     private long mLastPointer;
 
-    public SingleFileLoader(File file) {
-        this(file, "utf-8");
-    }
-
-    public SingleFileLoader(File file, String charSet) {
-        mFile = file;
-        mCharSet = charSet;
-    }
+    private File mFile;
+    private String mCharSet;
+    private long mGoalPointer;
 
     public void setRange(SFileRange range) throws IOException {
         if (null == range) {
             return;
         }
         mRaf.seek(range.start);
+        mGoalPointer = range.end;
     }
 
     public String getNextLineText() throws IOException {
@@ -55,7 +48,18 @@ public class SingleFileLoader implements ILoader<SFileRange, SFileRawLine> {
         mRaf.close();
     }
 
+    public void onInit(Param param) {
+        mFile = param.getFileToLoad();
+        mCharSet = param.getFileCharSet();
+        mGoalPointer = mFile.length();
+    }
+
     private SFileRawLine innerGetNextRawLine(SFileRawLine rLine) throws IOException {
+        // 判断是否已到达目标位点
+        if (mGoalPointer <= mLastPointer) {
+            rLine.update(mLastPointer, mLastPointer, null);
+            return rLine;
+        }
         // 读取下一行
         String lineText = mRaf.readLine();
         // 获得末尾位置
