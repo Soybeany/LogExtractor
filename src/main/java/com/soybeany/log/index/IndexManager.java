@@ -1,36 +1,23 @@
 package com.soybeany.log.index;
 
-import com.soybeany.log.base.BaseManager;
-import com.soybeany.log.base.BaseIndexCenter;
-import com.soybeany.log.base.BaseLoader;
-import com.soybeany.log.base.IRawLine;
+import com.soybeany.log.core.BaseIndexCenter;
+import com.soybeany.log.core.BaseManager;
+import com.soybeany.log.core.Module;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-public class IndexManager<Data, Range, Index, RLine extends IRawLine, Line, Flag> extends BaseManager<Data, RLine, Line, Flag> {
+public class IndexManager<Data, Range, Index, RLine, Line, Flag> extends BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
-    private BaseIndexCenter<Data, Range, Index> mIndexCenter;
-    private BaseLoader<Data, Range, RLine> mLoader;
+    public static final String PURPOSE = "索引";
+
     private BaseCreatorFactory<Data, Index, RLine, Line, Flag> mCreatorFactory;
 
-    public IndexManager(Data data) {
-        super(data);
-    }
-
     // ****************************************设置API****************************************
-
-    public void setCenter(BaseIndexCenter<Data, Range, Index> center) {
-        mIndexCenter = center;
-    }
-
-    public void setLoader(BaseLoader<Data, Range, RLine> loader) {
-        mLoader = loader;
-    }
 
     public void setCreatorFactory(BaseCreatorFactory<Data, Index, RLine, Line, Flag> factory) {
         mCreatorFactory = factory;
@@ -38,29 +25,35 @@ public class IndexManager<Data, Range, Index, RLine extends IRawLine, Line, Flag
 
     // ****************************************输出API****************************************
 
-    public void createIndexes() throws IOException {
+    public void createIndexes(Data data) throws IOException {
         // 检查模块
-        checkAndSetupModules(Arrays.asList(mIndexCenter, mLoader, mCreatorFactory));
+        checkAndSetupModules(data, Collections.<Module<Data>>singletonList(mCreatorFactory));
         // 加载
         try {
-            mLoader.onOpen(mIndexCenter.getLoadRange());
-            // 创建索引
-            parseLines(new Callback());
+            Index index = openLoader(PURPOSE);
+            parseLines(new Callback(index));
         } finally {
-            mLoader.onClose();
+            closeLoader();
         }
     }
 
-    protected RLine getNextRawLine() throws IOException {
-        return mLoader.getNextRawLine();
+    // ****************************************重写方法****************************************
+
+    @Override
+    protected Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter) {
+        return indexCenter.getSourceIndex();
     }
 
     // ****************************************内部类****************************************
 
     private class Callback implements ICallback<RLine, Line, Flag> {
-        private Index mIndex = mIndexCenter.getIndex();
+        private Index mIndex;
         private List<? extends BaseIndexCreator<Data, Index, RLine, Line>> mLineCreators = mCreatorFactory.getLineCreators();
         private List<? extends BaseIndexCreator<Data, Index, RLine, Flag>> mFlagCreators = mCreatorFactory.getFlagCreators();
+
+        Callback(Index index) {
+            mIndex = index;
+        }
 
         public boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag) {
             // 建立Line索引
