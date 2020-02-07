@@ -1,7 +1,8 @@
 package com.soybeany.std.parser;
 
+import com.soybeany.core.common.BusinessException;
 import com.soybeany.core.common.ToolUtils;
-import com.soybeany.core.sort.parser.BaseFlagParser;
+import com.soybeany.core.query.parser.BaseFlagParser;
 import com.soybeany.std.data.Line;
 import com.soybeany.std.data.flag.Flag;
 import com.soybeany.std.data.flag.FlagInfo;
@@ -31,11 +32,11 @@ public abstract class StdFlagParser<Data> extends BaseFlagParser<Data, Line, Fla
         }
         FlagFactory factory = mFactoryMap.get(info.type);
         if (null == factory) {
-            throw new RuntimeException("FlagDetail使用了不支持的类型");
+            throw new BusinessException("FlagDetail使用了不支持的类型");
         }
         Matcher matcher = factory.getPattern().matcher(info.detail);
         if (!matcher.find()) {
-            throw new RuntimeException("无法解析FlagDetail");
+            throw new BusinessException("无法解析FlagDetail");
         }
         return factory.get(matcher, info);
     }

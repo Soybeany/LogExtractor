@@ -1,7 +1,7 @@
 package com.soybeany.sfile.loader;
 
-import com.soybeany.sfile.data.ISFileData;
 import com.soybeany.core.common.BaseLoader;
+import com.soybeany.sfile.data.ISFileData;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +16,7 @@ public class SingleFileLoader<Data extends ISFileData> extends BaseLoader<Data, 
     private RandomAccessFile mRaf;
     private long mLastPointer;
 
+    private Data mData;
     private File mFile;
     private String mCharset;
     private SFileRange mLoadRange;
@@ -23,6 +24,11 @@ public class SingleFileLoader<Data extends ISFileData> extends BaseLoader<Data, 
     @Override
     public SFileRawLine getNextRawLine() throws IOException {
         return innerGetNextRawLine(new SFileRawLine());
+    }
+
+    @Override
+    public boolean needLoadToEnd() {
+        return mLoadRange.end == mFile.length();
     }
 
     @Override
@@ -45,11 +51,13 @@ public class SingleFileLoader<Data extends ISFileData> extends BaseLoader<Data, 
             return;
         }
         mRaf.close();
+        mData.setLoadRange(SFileRange.between(mLoadRange.start, mLastPointer));
     }
 
     @Override
     public void onInit(Data data) {
         super.onInit(data);
+        mData = data;
         mFile = data.getFileToLoad();
         mCharset = data.getFileCharset();
     }

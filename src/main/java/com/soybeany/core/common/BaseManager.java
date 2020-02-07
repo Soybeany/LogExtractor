@@ -1,8 +1,8 @@
 package com.soybeany.core.common;
 
 
-import com.soybeany.core.sort.parser.BaseFlagParser;
-import com.soybeany.core.sort.parser.BaseLineParser;
+import com.soybeany.core.query.parser.BaseFlagParser;
+import com.soybeany.core.query.parser.BaseLineParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,10 +14,20 @@ import java.util.List;
  */
 public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
+    private static int WORK_COUNT = 0;
+
     private BaseIndexCenter<Data, Range, Index> mIndexCenter;
     private BaseLoader<Data, Range, RLine> mLoader;
     private BaseLineParser<Data, RLine, Line> mLineParser;
     private BaseFlagParser<Data, Line, Flag> mFlagParser;
+
+    private List<BaseModule<Data>> mModules;
+
+    // ****************************************输出API****************************************
+
+    public static int getWorkCount() {
+        return WORK_COUNT;
+    }
 
     // ****************************************设置API****************************************
 
@@ -39,25 +49,45 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
     // ****************************************子类调用****************************************
 
-    protected Index openLoader(String purpose) throws IOException {
+    protected boolean needLoadToEnd() {
+        return mLoader.needLoadToEnd();
+    }
+
+    protected void setAndCheckModules(List<BaseModule<Data>> modules) {
+        mModules = new ArrayList<BaseModule<Data>>(modules);
+        // 设置额外检测的模块
+        mModules.addAll(Arrays.asList(mIndexCenter, mLoader, mLineParser, mFlagParser));
+        // 检测
+        for (int i = 0; i < mModules.size(); i++) {
+            BaseModule<Data> module = mModules.get(i);
+            ToolUtils.checkNull(module, "模块设置不完整(" + i + ")");
+        }
+    }
+
+    protected synchronized Index init(String purpose, Data data) throws IOException, ConcurrencyException {
+        // 增加计数
+        WORK_COUNT++;
+        // 触发回调
+        for (BaseModule<Data> module : mModules) {
+            module.onInit(data);
+        }
+        // 开启加载器
         Index index = getIndex(mIndexCenter);
         mLoader.onOpen(mIndexCenter.getLoadRange(purpose, index));
         return index;
     }
 
-    protected void closeLoader() throws IOException {
-        mLoader.onClose();
-    }
-
-    protected void checkAndSetupModules(Data data, List<Module<Data>> modules) {
-        List<Module<Data>> fullModules = new ArrayList<Module<Data>>(modules);
-        // 设置额外检测的模块
-        fullModules.addAll(Arrays.asList(mIndexCenter, mLoader, mLineParser, mFlagParser));
-        // 检测并设置
-        for (int i = 0; i < fullModules.size(); i++) {
-            Module<Data> module = fullModules.get(i);
-            ToolUtils.checkNull(module, "模块设置不完整(" + i + ")");
-            module.onInit(data);
+    protected synchronized void finish() throws IOException {
+        // 关闭加载器
+        try {
+            mLoader.onClose();
+        } finally {
+            // 触发回调
+            for (BaseModule<Data> module : mModules) {
+                module.onFinish();
+            }
+            // 减少计数
+            WORK_COUNT--;
         }
     }
 
@@ -92,7 +122,7 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
         return null == rLine || null == lineString;
     }
 
-    protected abstract Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter);
+    protected abstract Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter) throws ConcurrencyException;
 
     protected interface ICallback<RLine, Line, Flag> {
         /**

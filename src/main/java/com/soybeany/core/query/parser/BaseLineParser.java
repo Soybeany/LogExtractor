@@ -1,4 +1,4 @@
-package com.soybeany.core.sort.parser;
+package com.soybeany.core.query.parser;
 
 import java.io.IOException;
 

@@ -1,4 +1,4 @@
-package com.soybeany.core.sort;
+package com.soybeany.core.query;
 
 import com.soybeany.core.common.*;
 
@@ -9,16 +9,21 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class SortManager<Data, Range, Index, RLine, Line, Flag, Log, Report> extends BaseManager<Data, Range, Index, RLine, Line, Flag> {
+public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> extends BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
     public static final String PURPOSE = "整理";
 
+    private BaseDataAccessor<Data> mDataIdAccessor;
     private BaseStorageCenter<Data, Report> mStorageCenter;
     private BaseLogFactory<Data, Line, Flag, Log> mLogFactory;
     private BaseFilterFactory<Data, Log> mFilterFactory;
     private BaseReporter<Data, Log, Report> mReporter;
 
     // ****************************************设置API****************************************
+
+    public void setDataIdAccessor(BaseDataAccessor<Data> dataIdAccessor) {
+        mDataIdAccessor = dataIdAccessor;
+    }
 
     public void setStorageCenter(BaseStorageCenter<Data, Report> center) {
         mStorageCenter = center;
@@ -39,38 +44,27 @@ public class SortManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ext
     // ****************************************输出API****************************************
 
     /**
-     * 数据源查找，使用指定的数据
+     * 数据源查找
      */
-    public Report find(String dataId, Data data) throws IOException, DataIdException {
+    public Report find(Data data) throws IOException, DataIdException, ConcurrencyException {
         checkDataStorage();
+        checkDataAccessor();
+        String dataId = mDataIdAccessor.getCurDataId(data);
+        Report report = innerQuery(dataId, data);
         mStorageCenter.saveData(dataId, data);
-        return innerQuery(dataId, data);
-    }
-
-    /**
-     * 数据源查找，使用指定的数据id
-     */
-    public Report find(String dataId) throws IOException, DataIdException {
-        checkDataStorage();
-        return innerQuery(dataId, mStorageCenter.loadData(dataId));
-    }
-
-    /**
-     * 报告集中查询
-     */
-    public Report query(String dataId) throws DataIdException {
-        checkDataStorage();
-        return mStorageCenter.loadReport(dataId);
+        return report;
     }
 
     /**
      * 先从报告集中查询，若没有则从数据源查找
      */
-    public Report queryAndFind(String dataId) throws IOException, DataIdException {
+    public Report findById(String dataId) throws IOException, DataIdException, ConcurrencyException {
+        checkDataStorage();
         try {
-            return query(dataId);
+            return mStorageCenter.loadReport(dataId);
         } catch (DataIdException e) {
-            return find(dataId);
+            checkDataAccessor();
+            return innerQuery(dataId, mStorageCenter.loadData(dataId));
         }
     }
 
@@ -83,29 +77,42 @@ public class SortManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ext
 
     // ****************************************内部方法****************************************
 
-    private Report innerQuery(String dataId, Data data) throws IOException, DataIdException {
+    private Report innerQuery(String dataId, Data data) throws IOException, DataIdException, ConcurrencyException {
         // 检查模块
-        checkAndSetupModules(data, Arrays.asList(mLogFactory, mFilterFactory, mReporter));
+        setAndCheckModules(Arrays.asList(mLogFactory, mFilterFactory, mReporter));
         // 加载
         try {
-            openLoader(PURPOSE);
+            init(PURPOSE, data);
             // 按需补充日志
+            mLogFactory.setLock();
             while (mReporter.needMoreLog()) {
                 if (parseLines(new Callback())) {
                     break;
                 }
             }
         } finally {
-            closeLoader();
+            finish();
+        }
+        // 按需生成下一数据
+        boolean isLoadToEnd = needLoadToEnd();
+        if (!mReporter.needMoreLog() && !isLoadToEnd) {
+            Data nextData = mDataIdAccessor.getNextData(data);
+            String nextDataId = mDataIdAccessor.getCurDataId(nextData);
+            mDataIdAccessor.setNextDataId(data, nextDataId);
+            mStorageCenter.saveData(nextDataId, nextData);
         }
         // 生成报告
-        Report report = mReporter.getReport();
+        Report report = mReporter.getNewReport(isLoadToEnd);
         mStorageCenter.saveReport(dataId, report);
         return report;
     }
 
     private void checkDataStorage() {
         ToolUtils.checkNull(mStorageCenter, "StorageCenter未设置");
+    }
+
+    private void checkDataAccessor() {
+        ToolUtils.checkNull(mDataIdAccessor, "DataAccessor未设置");
     }
 
     // ****************************************内部类****************************************

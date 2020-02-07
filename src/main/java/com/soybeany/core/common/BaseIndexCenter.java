@@ -1,14 +1,15 @@
 package com.soybeany.core.common;
 
 /**
+ * 实现类需注意并发创建索引的问题
  * <br>Created by Soybeany on 2020/2/5.
  */
-public abstract class BaseIndexCenter<Data, Range, Index> extends Module<Data> {
+public abstract class BaseIndexCenter<Data, Range, Index> extends BaseModule<Data> {
 
     /**
      * 获得源索引
      */
-    public abstract Index getSourceIndex();
+    public abstract Index getSourceIndex() throws ConcurrencyException;
 
     /**
      * 获得拷贝索引

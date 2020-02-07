@@ -7,7 +7,7 @@ public class ToolUtils {
 
     public static void checkNull(Object obj, String msg) {
         if (null == obj) {
-            throw new RuntimeException(msg);
+            throw new BusinessException(msg);
         }
     }
 

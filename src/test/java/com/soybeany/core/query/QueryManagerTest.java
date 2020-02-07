@@ -1,22 +1,23 @@
-package com.soybeany.core.sort;
+package com.soybeany.core.query;
 
 import com.google.gson.Gson;
 import com.soybeany.core.LogManager;
-import com.soybeany.core.index.BaseCreatorFactory;
-import com.soybeany.core.index.BaseIndexCreator;
+import com.soybeany.core.common.BusinessException;
+import com.soybeany.core.common.ConcurrencyException;
+import com.soybeany.core.scan.BaseCreatorFactory;
+import com.soybeany.core.scan.BaseIndexCreator;
 import com.soybeany.sfile.center.MemSFileIndexCenter;
 import com.soybeany.sfile.center.MemStorageCenter;
 import com.soybeany.sfile.data.ISFileData;
 import com.soybeany.sfile.loader.SFileRange;
 import com.soybeany.sfile.loader.SFileRawLine;
 import com.soybeany.sfile.loader.SingleFileLoader;
-import com.soybeany.std.data.Index;
-import com.soybeany.std.data.Line;
-import com.soybeany.std.data.Log;
+import com.soybeany.std.data.*;
 import com.soybeany.std.data.flag.Flag;
 import com.soybeany.std.data.flag.FlagInfo;
 import com.soybeany.std.parser.StdFlagParser;
 import com.soybeany.std.parser.StdLineParser;
+import com.soybeany.std.reporter.StdReporter;
 import efb.EFBRequestFlag;
 import org.junit.jupiter.api.Test;
 
@@ -28,33 +29,54 @@ import java.util.regex.Pattern;
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-class SortManagerTest {
+class QueryManagerTest {
 
     @Test
     public void testLog() throws Exception {
         Data data = new Data();
-        data.end = 200;
+//        data.end = 200;
         LogManager<Data, SFileRange, Index, SFileRawLine, Line, Flag, Log, Report> manager = new LogManager<Data, SFileRange, Index, SFileRawLine, Line, Flag, Log, Report>();
+        manager.setDataIdAccessor(new DataAccessor());
         manager.setStorageCenter(new MemStorageCenter<Data, Report>());
         manager.setIndexCenter(new MemSFileIndexCenter<Data, SFileRange, Index>(new MemSFileIndexCenterCallback()));
         manager.setLoader(new SingleFileLoader<Data>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
         manager.setLogFactory(new LogFactory());
-        manager.setReporter(new Reporter());
+        manager.setReporter(new StdReporter<Data>());
         manager.setFilterFactory(new FilterFactory());
         manager.setCreatorFactory(new CreatorFactory());
-        Report report = manager.find("abc", data);
-        System.out.println(report.json);
+        manager.createIndexes(data);
+        Report report = manager.find(data);
+        System.out.println(new Gson().toJson(report));
     }
 
     // ****************************************模块****************************************
+
+    private static class DataAccessor extends BaseDataAccessor<Data> {
+        @Override
+        public String getCurDataId(Data data) {
+            return data.curDataId;
+        }
+
+        @Override
+        public void setNextDataId(Data data, String dataId) {
+            data.nextDataId = dataId;
+        }
+
+        @Override
+        public Data getNextData(Data data) {
+            Data nextData = new Data();
+            nextData.lastDataId = data.curDataId;
+            return nextData;
+        }
+    }
 
     private static class MemSFileIndexCenterCallback implements MemSFileIndexCenter.ICallback<Data, SFileRange, Index> {
 
         @Override
         public SFileRange getLoadRange(String purpose, Index index, Data data) {
-            if (SortManager.PURPOSE.equals(purpose)) {
+            if (QueryManager.PURPOSE.equals(purpose)) {
                 return SFileRange.between(data.start, data.end);
             }
             return null;
@@ -91,7 +113,7 @@ class SortManagerTest {
         private static Pattern PATTERN = Pattern.compile("FLAG-(.+)-(.+):(.+)");
 
         {
-            addFactory("客户端", new SortManagerTest.FlagFactory());
+            addFactory("客户端", new QueryManagerTest.FlagFactory());
         }
 
         @Override
@@ -147,7 +169,12 @@ class SortManagerTest {
                 return log;
             }
             // 其它状态
-            throw new RuntimeException("使用了未知的状态");
+            throw new BusinessException("使用了未知的状态");
+        }
+
+        @Override
+        public void setLock() {
+
         }
 
         public void addLine(Line line) {
@@ -156,25 +183,6 @@ class SortManagerTest {
                 log.lines.add(line);
             }
         }
-    }
-
-    private static class Reporter extends BaseReporter<Data, Log, Report> {
-
-        private static final Gson GSON = new Gson();
-        private final List<Log> mResultList = new LinkedList<Log>();
-
-        public boolean needMoreLog() {
-            return true;
-        }
-
-        public void addLog(Log log) {
-            mResultList.add(log);
-        }
-
-        public Report getReport() {
-            return new Report(GSON.toJson(mResultList));
-        }
-
     }
 
     private static class FilterFactory extends BaseFilterFactory<Data, Log> {
@@ -223,9 +231,16 @@ class SortManagerTest {
 
     // ****************************************模型****************************************
 
-    private static class Data implements ISFileData {
+    private static class Data implements ISFileData, ILogData, IReportData {
         long start;
         long end = Long.MAX_VALUE;
+
+        String lastDataId;
+        String curDataId = UUID.randomUUID().toString().replace("-", "");
+        String nextDataId;
+
+        private Map<String, Log> mLogStorage = new HashMap<String, Log>();
+        private SFileRange mRange;
 
         public File getFileToLoad() {
             return new File("D:\\source.txt");
@@ -234,14 +249,40 @@ class SortManagerTest {
         public String getFileCharset() {
             return "utf-8";
         }
-    }
 
-    private static class Report {
+        @Override
+        public SFileRange getLoadRange() {
+            return mRange;
+        }
 
-        public String json;
+        @Override
+        public void setLoadRange(SFileRange range) {
+            mRange = range;
+        }
 
-        public Report(String json) {
-            this.json = json;
+        @Override
+        public Map<String, Log> getLogStorage() {
+            return mLogStorage;
+        }
+
+        @Override
+        public int getLimitCount() {
+            return 1;
+        }
+
+        @Override
+        public String getLastDataId() {
+            return lastDataId;
+        }
+
+        @Override
+        public String getCurDataId() {
+            return curDataId;
+        }
+
+        @Override
+        public String getNextDataId() {
+            return nextDataId;
         }
     }
 }

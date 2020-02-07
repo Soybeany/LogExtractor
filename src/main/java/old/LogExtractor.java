@@ -22,14 +22,14 @@
 //
 //    public static void setHintProvider(IHintProvider provider) {
 //        if (null == provider) {
-//            throw new RuntimeException("提示语提供者不能设置为null");
+//            throw new BusinessException("提示语提供者不能设置为null");
 //        }
 //        HINT_PROVIDER = provider;
 //    }
 //
 //    public static void setExceptionListener(IExceptionListener listener) {
 //        if (null == listener) {
-//            throw new RuntimeException("异常监听器不能设置为null");
+//            throw new BusinessException("异常监听器不能设置为null");
 //        }
 //        EXCEPTION_LISTENER = listener;
 //    }

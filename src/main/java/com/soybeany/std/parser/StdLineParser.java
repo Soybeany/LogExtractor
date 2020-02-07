@@ -1,6 +1,6 @@
 package com.soybeany.std.parser;
 
-import com.soybeany.core.sort.parser.BaseLineParser;
+import com.soybeany.core.query.parser.BaseLineParser;
 import com.soybeany.sfile.loader.SFileRawLine;
 import com.soybeany.std.data.Line;
 

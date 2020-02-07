@@ -1,8 +1,9 @@
-package com.soybeany.core.index;
+package com.soybeany.core.scan;
 
 import com.soybeany.core.common.BaseIndexCenter;
 import com.soybeany.core.common.BaseManager;
-import com.soybeany.core.common.Module;
+import com.soybeany.core.common.ConcurrencyException;
+import com.soybeany.core.common.BaseModule;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -11,7 +12,7 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-public class IndexManager<Data, Range, Index, RLine, Line, Flag> extends BaseManager<Data, Range, Index, RLine, Line, Flag> {
+public class ScanManager<Data, Range, Index, RLine, Line, Flag> extends BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
     public static final String PURPOSE = "索引";
 
@@ -25,22 +26,22 @@ public class IndexManager<Data, Range, Index, RLine, Line, Flag> extends BaseMan
 
     // ****************************************输出API****************************************
 
-    public void createIndexes(Data data) throws IOException {
+    public void createIndexes(Data data) throws IOException, ConcurrencyException {
         // 检查模块
-        checkAndSetupModules(data, Collections.<Module<Data>>singletonList(mCreatorFactory));
+        setAndCheckModules(Collections.<BaseModule<Data>>singletonList(mCreatorFactory));
         // 加载
         try {
-            Index index = openLoader(PURPOSE);
+            Index index = init(PURPOSE, data);
             parseLines(new Callback(index));
         } finally {
-            closeLoader();
+            finish();
         }
     }
 
     // ****************************************重写方法****************************************
 
     @Override
-    protected Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter) {
+    protected Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter) throws ConcurrencyException {
         return indexCenter.getSourceIndex();
     }
 

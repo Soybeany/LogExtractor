@@ -1,4 +1,4 @@
-package com.soybeany.core.sort.parser;
+package com.soybeany.core.query.parser;
 
 /**
  * <br>Created by Soybeany on 2020/2/4.

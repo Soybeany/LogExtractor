@@ -1,6 +1,6 @@
 package efb;
 
-import com.soybeany.core.sort.parser.BaseLineParser;
+import com.soybeany.core.query.parser.BaseLineParser;
 
 import java.io.IOException;
 
