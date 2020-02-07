@@ -7,6 +7,6 @@ import java.util.Map;
  */
 public interface ILogData {
 
-    Map<String, Log> getLogStorage();
+    Map<String, Log> getLogMap();
 
 }

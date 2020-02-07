@@ -3,7 +3,6 @@ package com.soybeany.core.query;
 import com.google.gson.Gson;
 import com.soybeany.core.LogManager;
 import com.soybeany.core.common.BusinessException;
-import com.soybeany.core.common.ConcurrencyException;
 import com.soybeany.core.scan.BaseCreatorFactory;
 import com.soybeany.core.scan.BaseIndexCreator;
 import com.soybeany.sfile.center.MemSFileIndexCenter;
@@ -34,7 +33,6 @@ class QueryManagerTest {
     @Test
     public void testLog() throws Exception {
         Data data = new Data();
-//        data.end = 200;
         LogManager<Data, SFileRange, Index, SFileRawLine, Line, Flag, Log, Report> manager = new LogManager<Data, SFileRange, Index, SFileRawLine, Line, Flag, Log, Report>();
         manager.setDataIdAccessor(new DataAccessor());
         manager.setStorageCenter(new MemStorageCenter<Data, Report>());
@@ -46,9 +44,11 @@ class QueryManagerTest {
         manager.setReporter(new StdReporter<Data>());
         manager.setFilterFactory(new FilterFactory());
         manager.setCreatorFactory(new CreatorFactory());
-        manager.createIndexes(data);
+//        manager.createIndexes(data);
         Report report = manager.find(data);
         System.out.println(new Gson().toJson(report));
+        Report report2 = manager.findById(report.nextDataId);
+        System.out.println(new Gson().toJson(report2));
     }
 
     // ****************************************模块****************************************
@@ -68,6 +68,8 @@ class QueryManagerTest {
         public Data getNextData(Data data) {
             Data nextData = new Data();
             nextData.lastDataId = data.curDataId;
+            nextData.setLoadRange(SFileRange.between(data.getLoadRange().end, Long.MAX_VALUE));
+            nextData.mLogMap = data.mLogMap;
             return nextData;
         }
     }
@@ -76,8 +78,9 @@ class QueryManagerTest {
 
         @Override
         public SFileRange getLoadRange(String purpose, Index index, Data data) {
-            if (QueryManager.PURPOSE.equals(purpose)) {
-                return SFileRange.between(data.start, data.end);
+            SFileRange range;
+            if (QueryManager.PURPOSE.equals(purpose) && null != (range = data.getLoadRange())) {
+                return SFileRange.between(range.start, range.end);
             }
             return null;
         }
@@ -232,14 +235,13 @@ class QueryManagerTest {
     // ****************************************模型****************************************
 
     private static class Data implements ISFileData, ILogData, IReportData {
-        long start;
-        long end = Long.MAX_VALUE;
 
         String lastDataId;
-        String curDataId = UUID.randomUUID().toString().replace("-", "");
+        final String curDataId = UUID.randomUUID().toString().replace("-", "");
         String nextDataId;
 
-        private Map<String, Log> mLogStorage = new HashMap<String, Log>();
+        private Map<String, Log> mLogMap = new HashMap<String, Log>();
+        private List<Log> mLogList = new LinkedList<Log>();
         private SFileRange mRange;
 
         public File getFileToLoad() {
@@ -261,8 +263,13 @@ class QueryManagerTest {
         }
 
         @Override
-        public Map<String, Log> getLogStorage() {
-            return mLogStorage;
+        public Map<String, Log> getLogMap() {
+            return mLogMap;
+        }
+
+        @Override
+        public List<Log> getLogList() {
+            return mLogList;
         }
 
         @Override

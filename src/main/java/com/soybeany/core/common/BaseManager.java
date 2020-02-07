@@ -49,8 +49,8 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
     // ****************************************子类调用****************************************
 
-    protected boolean needLoadToEnd() {
-        return mLoader.needLoadToEnd();
+    protected boolean isLoadToEnd() {
+        return mLoader.isLoadToEnd();
     }
 
     protected void setAndCheckModules(List<BaseModule<Data>> modules) {

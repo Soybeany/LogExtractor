@@ -14,7 +14,7 @@ public abstract class BaseLoader<Data, Range, RLine> extends BaseModule<Data> {
      */
     public abstract RLine getNextRawLine() throws IOException;
 
-    public abstract boolean needLoadToEnd();
+    public abstract boolean isLoadToEnd();
 
     public abstract void onOpen(Range range) throws IOException;
 

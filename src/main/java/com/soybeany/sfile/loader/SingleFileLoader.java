@@ -12,7 +12,6 @@ import java.io.RandomAccessFile;
  */
 public class SingleFileLoader<Data extends ISFileData> extends BaseLoader<Data, SFileRange, SFileRawLine> {
 
-    private final SFileRawLine mRawLine = new SFileRawLine();
     private RandomAccessFile mRaf;
     private long mLastPointer;
 
@@ -27,8 +26,8 @@ public class SingleFileLoader<Data extends ISFileData> extends BaseLoader<Data, 
     }
 
     @Override
-    public boolean needLoadToEnd() {
-        return mLoadRange.end == mFile.length();
+    public boolean isLoadToEnd() {
+        return mLastPointer == mFile.length();
     }
 
     @Override
@@ -46,7 +45,6 @@ public class SingleFileLoader<Data extends ISFileData> extends BaseLoader<Data, 
 
     @Override
     public void onClose() throws IOException {
-        mRawLine.update(0, 0, null);
         if (null == mRaf) {
             return;
         }

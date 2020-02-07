@@ -7,7 +7,6 @@ import com.soybeany.std.data.IReportData;
 import com.soybeany.std.data.Log;
 import com.soybeany.std.data.Report;
 
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -15,15 +14,15 @@ import java.util.List;
  */
 public class StdReporter<Data extends ISFileData & IReportData> extends BaseReporter<Data, Log, Report> {
 
-    private final List<Log> mLogs = new LinkedList<Log>();
-
     private Data mData;
+    private List<Log> mLogs;
     private int mLimitCount;
 
     @Override
     public void onInit(Data data) {
         super.onInit(data);
         mData = data;
+        mLogs = data.getLogList();
         mLimitCount = data.getLimitCount();
     }
 

@@ -94,7 +94,7 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
             finish();
         }
         // 按需生成下一数据
-        boolean isLoadToEnd = needLoadToEnd();
+        boolean isLoadToEnd = isLoadToEnd();
         if (!mReporter.needMoreLog() && !isLoadToEnd) {
             Data nextData = mDataIdAccessor.getNextData(data);
             String nextDataId = mDataIdAccessor.getCurDataId(nextData);

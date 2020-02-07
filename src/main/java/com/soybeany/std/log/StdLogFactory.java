@@ -21,7 +21,7 @@ public class StdLogFactory<Data extends ILogData> extends BaseLogFactory<Data, L
     @Override
     public void onInit(Data data) {
         super.onInit(data);
-        mLogMap = data.getLogStorage();
+        mLogMap = data.getLogMap();
     }
 
     @Override
