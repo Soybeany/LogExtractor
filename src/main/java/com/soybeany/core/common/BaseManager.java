@@ -13,12 +13,12 @@ import java.util.List;
  * 优先使用抽象模块来拓展功能，若模块已是具体实现类，才在数据上使用接口
  * <br>Created by Soybeany on 2020/2/5.
  */
-public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
+public abstract class BaseManager<Data, Index, RLine, Line, Flag> {
 
     private static int WORK_COUNT = 0;
 
-    private BaseIndexCenter<Data, Range, Index> mIndexCenter;
-    private BaseLoader<Data, Range, RLine> mLoader;
+    protected BaseStorageCenter<Data, Index> mStorageCenter;
+    private BaseLoader<Data, RLine, Index> mLoader;
     private BaseLineParser<Data, RLine, Line> mLineParser;
     private BaseFlagParser<Data, Line, Flag> mFlagParser;
 
@@ -32,11 +32,11 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
     // ****************************************设置API****************************************
 
-    public void setIndexCenter(BaseIndexCenter<Data, Range, Index> center) {
-        mIndexCenter = center;
+    public void setStorageCenter(BaseStorageCenter<Data, Index> center) {
+        mStorageCenter = center;
     }
 
-    public void setLoader(BaseLoader<Data, Range, RLine> loader) {
+    public void setLoader(BaseLoader<Data, RLine, Index> loader) {
         mLoader = loader;
     }
 
@@ -50,10 +50,14 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
     // ****************************************子类调用****************************************
 
+    protected void checkDataStorage() {
+        ToolUtils.checkNull(mStorageCenter, "StorageCenter未设置");
+    }
+
     protected void setAndCheckModules(List<BaseModule<Data>> modules) {
         mModules = new ArrayList<BaseModule<Data>>(modules);
         // 设置额外检测的模块
-        mModules.addAll(Arrays.asList(mIndexCenter, mLoader, mLineParser, mFlagParser));
+        mModules.addAll(Arrays.asList(mLoader, mLineParser, mFlagParser));
         // 检测
         for (int i = 0; i < mModules.size(); i++) {
             BaseModule<Data> module = mModules.get(i);
@@ -61,7 +65,7 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
         }
     }
 
-    protected synchronized Index init(String purpose, Data data) throws IOException, ConcurrencyException {
+    protected synchronized Index init(String purpose, Data data) throws IOException {
         // 增加计数
         WORK_COUNT++;
         // 触发回调
@@ -69,8 +73,8 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
             module.onActivate(data);
         }
         // 开启加载器
-        Index index = getIndex(mIndexCenter, data);
-        mLoader.onOpen(mIndexCenter.getLoadRange(purpose, index));
+        Index index = getIndex(mStorageCenter, data);
+        mLoader.onOpen(purpose, index);
         return index;
     }
 
@@ -119,7 +123,7 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
         return null == rLine || null == lineString;
     }
 
-    protected abstract Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter, Data data) throws ConcurrencyException;
+    protected abstract Index getIndex(BaseStorageCenter<Data, Index> storageCenter, Data data);
 
     protected interface ICallback<RLine, Line, Flag> {
         /**

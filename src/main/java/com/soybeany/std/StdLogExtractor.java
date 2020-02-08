@@ -5,7 +5,6 @@ import com.soybeany.core.common.ConcurrencyException;
 import com.soybeany.core.common.DataIdException;
 import com.soybeany.sfile.SFileLogExtractor;
 import com.soybeany.sfile.accessor.SFileDataAccessor;
-import com.soybeany.sfile.center.SFileIndexCenter;
 import com.soybeany.sfile.data.ISFileData;
 import com.soybeany.sfile.data.ISFileIndex;
 import com.soybeany.sfile.loader.SingleFileLoader;
@@ -24,28 +23,20 @@ import java.io.IOException;
  */
 public class StdLogExtractor<Data extends ISFileData & IStdData, Index extends ISFileIndex, Report extends QueryReport> extends SFileLogExtractor<Data, Index, Line, Flag, Log, Report> {
 
-    private SFileIndexCenter<Data, Index> mIndexCenter;
-    private BaseStorageCenter<Data> mStorageCenter;
-    private SingleFileLoader<Data> mLoader;
+    private BaseStorageCenter<Data, Index> mStorageCenter;
+    private SingleFileLoader<Data, Index> mLoader;
     private SFileDataAccessor<Data, Index, Report> mDataAccessor;
 
     // ****************************************设置方法****************************************
 
-
     @Override
-    public void setIndexCenter(SFileIndexCenter<Data, Index> center) {
-        super.setIndexCenter(center);
-        mIndexCenter = center;
-    }
-
-    @Override
-    public void setStorageCenter(BaseStorageCenter<Data> center) {
+    public void setStorageCenter(BaseStorageCenter<Data, Index> center) {
         super.setStorageCenter(center);
         mStorageCenter = center;
     }
 
     @Override
-    public void setLoader(SingleFileLoader<Data> loader) {
+    public void setLoader(SingleFileLoader<Data, Index> loader) {
         super.setLoader(loader);
         mLoader = loader;
     }
@@ -77,7 +68,7 @@ public class StdLogExtractor<Data extends ISFileData & IStdData, Index extends I
     @Override
     protected void onCreateIndexesFinish(Data data) {
         super.onCreateIndexesFinish(data);
-//        mIndexCenter.getSourceIndex().getPointer();
+//        mStorageCenter.getSourceIndex().getPointer();
     }
 
     protected void onSetupReport(Report report, Data data) {

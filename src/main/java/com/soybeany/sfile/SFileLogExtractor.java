@@ -3,7 +3,6 @@ package com.soybeany.sfile;
 import com.soybeany.core.common.BaseStorageCenter;
 import com.soybeany.core.common.ConcurrencyException;
 import com.soybeany.core.common.DataIdException;
-import com.soybeany.core.impl.center.MemIndexCenter;
 import com.soybeany.core.query.BaseFilterFactory;
 import com.soybeany.core.query.BaseLogFactory;
 import com.soybeany.core.query.BaseQueryReporter;
@@ -13,7 +12,6 @@ import com.soybeany.core.query.parser.BaseLineParser;
 import com.soybeany.core.scan.BaseCreatorFactory;
 import com.soybeany.core.scan.ScanManager;
 import com.soybeany.sfile.accessor.SFileDataAccessor;
-import com.soybeany.sfile.center.SFileIndexCenter;
 import com.soybeany.sfile.data.ISFileData;
 import com.soybeany.sfile.data.ISFileIndex;
 import com.soybeany.sfile.data.SFileRange;
@@ -30,27 +28,26 @@ import java.io.IOException;
  */
 public class SFileLogExtractor<Data extends ISFileData, Index extends ISFileIndex, Line, Flag, Log, Report> {
 
-    private ScanManager<Data, SFileRange, Index, SFileRawLine, Line, Flag> mScanManager = new ScanManager<Data, SFileRange, Index, SFileRawLine, Line, Flag>();
-    private QueryManager<Data, SFileRange, Index, SFileRawLine, Line, Flag, Log, Report> mQueryManager = new QueryManager<Data, SFileRange, Index, SFileRawLine, Line, Flag, Log, Report>();
+    private ScanManager<Data, Index, SFileRawLine, Line, Flag> mScanManager = new ScanManager<Data, Index, SFileRawLine, Line, Flag>();
+    private QueryManager<Data, Index, SFileRawLine, Line, Flag, Log, Report> mQueryManager = new QueryManager<Data, Index, SFileRawLine, Line, Flag, Log, Report>();
 
-    private SFileIndexCenter<Data, Index> mIndexCenter;
-    private SingleFileLoader<Data> mLoader;
+    private SingleFileLoader<Data, Index> mLoader;
 
     private SFileDataAccessor<Data, Index, Report> mDataAccessor;
-    private BaseStorageCenter<Data> mStorageCenter;
+    private BaseStorageCenter<Data, Index> mStorageCenter;
     private BaseQueryReporter<Data, Log, Report> mQueryReporter;
 
     // ****************************************设置API****************************************
 
-    public void setIndexCenter(SFileIndexCenter<Data, Index> center) {
-        mIndexCenter = center;
-        center.addRangeProvider(new RangeProvider());
-        mScanManager.setIndexCenter(center);
-        mQueryManager.setIndexCenter(center);
+    public void setStorageCenter(BaseStorageCenter<Data, Index> center) {
+        mStorageCenter = center;
+        mScanManager.setStorageCenter(center);
+        mQueryManager.setStorageCenter(center);
     }
 
-    public void setLoader(SingleFileLoader<Data> loader) {
+    public void setLoader(SingleFileLoader<Data, Index> loader) {
         mLoader = loader;
+        mLoader.addRangeProvider(new RangeProvider());
         mScanManager.setLoader(loader);
         mQueryManager.setLoader(loader);
     }
@@ -74,11 +71,6 @@ public class SFileLogExtractor<Data extends ISFileData, Index extends ISFileInde
         mQueryManager.setDataIdAccessor(dataAccessor);
     }
 
-    public void setStorageCenter(BaseStorageCenter<Data> center) {
-        mStorageCenter = center;
-        mQueryManager.setStorageCenter(center);
-    }
-
     public void setLogFactory(BaseLogFactory<Data, Line, Flag, Log> factory) {
         mQueryManager.setLogFactory(factory);
     }
@@ -100,7 +92,7 @@ public class SFileLogExtractor<Data extends ISFileData, Index extends ISFileInde
     public Report find(Data data) throws IOException, DataIdException, ConcurrencyException {
         // 更新索引
         mScanManager.createIndexes(data);
-        mIndexCenter.getSourceIndex().setPointer(mLoader.getLoadedRange().end);
+        mStorageCenter.getSourceIndex(data).setPointer(mLoader.getLoadedRange().end);
         onCreateIndexesFinish(data);
         // 执行查找
         Report report = mQueryManager.find(data);
@@ -140,7 +132,7 @@ public class SFileLogExtractor<Data extends ISFileData, Index extends ISFileInde
 
     // ****************************************内部类****************************************
 
-    private class RangeProvider implements MemIndexCenter.IRangeProvider<Data, SFileRange, Index> {
+    private class RangeProvider implements SingleFileLoader.IRangeProvider<Data, Index> {
         @Override
         public SFileRange getLoadRange(String purpose, Index index, Data data) {
             // 断点继续查询

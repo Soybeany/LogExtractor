@@ -9,12 +9,11 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> extends BaseManager<Data, Range, Index, RLine, Line, Flag> {
+public class QueryManager<Data, Index, RLine, Line, Flag, Log, Report> extends BaseManager<Data, Index, RLine, Line, Flag> {
 
     public static final String PURPOSE = "整理";
 
     private BaseDataAccessor<Data, Index, Report> mDataIdAccessor;
-    private BaseStorageCenter<Data> mStorageCenter;
     private BaseLogFactory<Data, Line, Flag, Log> mLogFactory;
     private BaseFilterFactory<Data, Log> mFilterFactory;
     private BaseQueryReporter<Data, Log, Report> mReporter;
@@ -23,10 +22,6 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
 
     public void setDataIdAccessor(BaseDataAccessor<Data, Index, Report> dataIdAccessor) {
         mDataIdAccessor = dataIdAccessor;
-    }
-
-    public void setStorageCenter(BaseStorageCenter<Data> center) {
-        mStorageCenter = center;
     }
 
     public void setLogFactory(BaseLogFactory<Data, Line, Flag, Log> factory) {
@@ -71,10 +66,10 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
     // ****************************************重写方法****************************************
 
     @Override
-    protected Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter, Data data) {
+    protected Index getIndex(BaseStorageCenter<Data, Index> storageCenter, Data data) {
         Index index = mDataIdAccessor.getIndex(data);
         if (null == index) {
-            index = indexCenter.getCopiedIndex();
+            index = storageCenter.getCopiedIndex(data);
             mDataIdAccessor.setIndex(data, index);
         }
         return index;
@@ -82,7 +77,7 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
 
     // ****************************************内部方法****************************************
 
-    private Report innerQuery(Data data) throws IOException, DataIdException, ConcurrencyException {
+    private Report innerQuery(Data data) throws IOException, ConcurrencyException {
         // 检查模块
         setAndCheckModules(Arrays.asList(mLogFactory, mFilterFactory, mReporter));
         // 加载
@@ -103,10 +98,6 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
             mLogFactory.releaseLock();
             finish();
         }
-    }
-
-    private void checkDataStorage() {
-        ToolUtils.checkNull(mStorageCenter, "StorageCenter未设置");
     }
 
     private void checkDataAccessor() {

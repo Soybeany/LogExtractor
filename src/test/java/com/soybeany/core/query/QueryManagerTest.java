@@ -1,12 +1,10 @@
 package com.soybeany.core.query;
 
 import com.google.gson.Gson;
-import com.soybeany.core.impl.center.MemIndexCenter;
 import com.soybeany.core.impl.center.MemStorageCenter;
 import com.soybeany.core.scan.BaseCreatorFactory;
 import com.soybeany.core.scan.BaseIndexCreator;
 import com.soybeany.sfile.accessor.SFileDataAccessor;
-import com.soybeany.sfile.center.SFileIndexCenter;
 import com.soybeany.sfile.data.ISFileData;
 import com.soybeany.sfile.data.SFileRawLine;
 import com.soybeany.sfile.loader.SingleFileLoader;
@@ -36,9 +34,8 @@ class QueryManagerTest {
         Data data = new Data();
         StdLogExtractor<Data, Index, QueryReport> manager = new StdLogExtractor<Data, Index, QueryReport>();
         manager.setDataAccessor(new DataAccessor());
-        manager.setStorageCenter(new MemStorageCenter<Data>());
-        manager.setIndexCenter(new SFileIndexCenter<Data, Index>(new InfoProvider()));
-        manager.setLoader(new SingleFileLoader<Data>());
+        manager.setStorageCenter(new MemStorageCenter<Data, Index>(new InfoProvider()));
+        manager.setLoader(new SingleFileLoader<Data, Index>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
         manager.setLogFactory(new StdLogFactory<Data>());
@@ -118,7 +115,7 @@ class QueryManagerTest {
         }
     }
 
-    private static class InfoProvider implements MemIndexCenter.IInfoProvider<Data, Index> {
+    private static class InfoProvider implements MemStorageCenter.IIndexProvider<Data, Index> {
         @Override
         public String getIndexKey(Data data) {
             return data.getFileToLoad().toString();
@@ -130,7 +127,7 @@ class QueryManagerTest {
         }
 
         @Override
-        public Index getNewIndex(Index source) {
+        public Index getCopy(Index source) {
             return source.copy(new Index());
         }
     }
