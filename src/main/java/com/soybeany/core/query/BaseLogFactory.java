@@ -1,7 +1,7 @@
 package com.soybeany.core.query;
 
-import com.soybeany.core.common.ConcurrencyException;
 import com.soybeany.core.common.BaseModule;
+import com.soybeany.core.common.ConcurrencyException;
 
 /**
  * 实现类需注意并发修改同一个Log的问题
@@ -9,7 +9,9 @@ import com.soybeany.core.common.BaseModule;
  */
 public abstract class BaseLogFactory<Data, Line, Flag, Log> extends BaseModule<Data> {
 
-    public abstract void setLock() throws ConcurrencyException;
+    public abstract void attainLock() throws ConcurrencyException;
+
+    public abstract void releaseLock();
 
     public abstract void addLine(Line line);
 

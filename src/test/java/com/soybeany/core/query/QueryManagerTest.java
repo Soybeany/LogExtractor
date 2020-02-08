@@ -1,22 +1,23 @@
 package com.soybeany.core.query;
 
 import com.google.gson.Gson;
-import com.soybeany.core.LogManager;
-import com.soybeany.core.common.BusinessException;
+import com.soybeany.core.impl.center.MemIndexCenter;
+import com.soybeany.core.impl.center.MemStorageCenter;
 import com.soybeany.core.scan.BaseCreatorFactory;
 import com.soybeany.core.scan.BaseIndexCreator;
-import com.soybeany.sfile.center.MemSFileIndexCenter;
-import com.soybeany.sfile.center.MemStorageCenter;
+import com.soybeany.sfile.accessor.SFileDataAccessor;
+import com.soybeany.sfile.center.SFileIndexCenter;
 import com.soybeany.sfile.data.ISFileData;
-import com.soybeany.sfile.loader.SFileRange;
-import com.soybeany.sfile.loader.SFileRawLine;
+import com.soybeany.sfile.data.SFileRawLine;
 import com.soybeany.sfile.loader.SingleFileLoader;
+import com.soybeany.std.StdLogExtractor;
 import com.soybeany.std.data.*;
 import com.soybeany.std.data.flag.Flag;
 import com.soybeany.std.data.flag.FlagInfo;
+import com.soybeany.std.log.StdLogFactory;
 import com.soybeany.std.parser.StdFlagParser;
 import com.soybeany.std.parser.StdLineParser;
-import com.soybeany.std.reporter.StdReporter;
+import com.soybeany.std.reporter.StdQueryReporter;
 import efb.EFBRequestFlag;
 import org.junit.jupiter.api.Test;
 
@@ -33,58 +34,91 @@ class QueryManagerTest {
     @Test
     public void testLog() throws Exception {
         Data data = new Data();
-        LogManager<Data, SFileRange, Index, SFileRawLine, Line, Flag, Log, Report> manager = new LogManager<Data, SFileRange, Index, SFileRawLine, Line, Flag, Log, Report>();
-        manager.setDataIdAccessor(new DataAccessor());
-        manager.setStorageCenter(new MemStorageCenter<Data, Report>());
-        manager.setIndexCenter(new MemSFileIndexCenter<Data, SFileRange, Index>(new MemSFileIndexCenterCallback()));
+        StdLogExtractor<Data, Index, QueryReport> manager = new StdLogExtractor<Data, Index, QueryReport>();
+        manager.setDataAccessor(new DataAccessor());
+        manager.setStorageCenter(new MemStorageCenter<Data>());
+        manager.setIndexCenter(new SFileIndexCenter<Data, Index>(new InfoProvider()));
         manager.setLoader(new SingleFileLoader<Data>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
-        manager.setLogFactory(new LogFactory());
-        manager.setReporter(new StdReporter<Data>());
+        manager.setLogFactory(new StdLogFactory<Data>());
+        manager.setReporter(new StdQueryReporter<Data>());
         manager.setFilterFactory(new FilterFactory());
         manager.setCreatorFactory(new CreatorFactory());
-//        manager.createIndexes(data);
-        Report report = manager.find(data);
+        QueryReport report = manager.find(data);
         System.out.println(new Gson().toJson(report));
-        Report report2 = manager.findById(report.nextDataId);
+        QueryReport report2 = manager.findById(report.nextDataId);
         System.out.println(new Gson().toJson(report2));
     }
 
     // ****************************************模块****************************************
 
-    private static class DataAccessor extends BaseDataAccessor<Data> {
+    private static class DataAccessor extends SFileDataAccessor<Data, Index, QueryReport> {
+
         @Override
         public String getCurDataId(Data data) {
             return data.curDataId;
         }
 
         @Override
-        public void setNextDataId(Data data, String dataId) {
-            data.nextDataId = dataId;
+        public void setIndex(Data data, Index index) {
+            data.index = index;
         }
 
         @Override
-        public Data getNextData(Data data) {
+        public Index getIndex(Data data) {
+            return data.index;
+        }
+
+        @Override
+        public void setReport(Data data, QueryReport report) {
+            data.report = report;
+        }
+
+        @Override
+        public QueryReport getReport(Data data) {
+            return data.report;
+        }
+
+        @Override
+        public String getLastDataId(Data data) {
+            return data.lastDataId;
+        }
+
+        @Override
+        public void setLastDataId(Data data, String id) {
+            data.lastDataId = id;
+        }
+
+        @Override
+        public String getNextDataId(Data data) {
+            return data.nextDataId;
+        }
+
+        @Override
+        public void setNextDataId(Data data, String id) {
+            data.nextDataId = id;
+        }
+
+        @Override
+        public long getPointer(Data data) {
+            return data.pointer;
+        }
+
+        @Override
+        public void setPointer(Data data, long pointer) {
+            data.pointer = pointer;
+        }
+
+        @Override
+        public Data getNewData(Data source) {
             Data nextData = new Data();
-            nextData.lastDataId = data.curDataId;
-            nextData.setLoadRange(SFileRange.between(data.getLoadRange().end, Long.MAX_VALUE));
-            nextData.mLogMap = data.mLogMap;
+            nextData.mLogMap = source.mLogMap;
             return nextData;
         }
     }
 
-    private static class MemSFileIndexCenterCallback implements MemSFileIndexCenter.ICallback<Data, SFileRange, Index> {
-
-        @Override
-        public SFileRange getLoadRange(String purpose, Index index, Data data) {
-            SFileRange range;
-            if (QueryManager.PURPOSE.equals(purpose) && null != (range = data.getLoadRange())) {
-                return SFileRange.between(range.start, range.end);
-            }
-            return null;
-        }
-
+    private static class InfoProvider implements MemIndexCenter.IInfoProvider<Data, Index> {
         @Override
         public String getIndexKey(Data data) {
             return data.getFileToLoad().toString();
@@ -93,6 +127,11 @@ class QueryManagerTest {
         @Override
         public Index getNewIndex() {
             return new Index();
+        }
+
+        @Override
+        public Index getNewIndex(Index source) {
+            return source.copy(new Index());
         }
     }
 
@@ -151,43 +190,6 @@ class QueryManagerTest {
         }
     }
 
-    private static class LogFactory extends BaseLogFactory<Data, Line, Flag, Log> {
-
-        private Map<String, Log> mLogMap = new HashMap<String, Log>();
-
-        public Log addFlag(Flag flag) {
-            String logId = flag.info.getLogId();
-            // 若为开始状态
-            if (Flag.STATE_START.equals(flag.state)) {
-                Log log = new Log(logId);
-                log.startFlag = flag;
-                return mLogMap.put(logId, log);
-            }
-            // 若为结束状态
-            if (Flag.STATE_END.equals(flag.state)) {
-                Log log = mLogMap.remove(logId);
-                if (null != log) {
-                    log.endFlag = flag;
-                }
-                return log;
-            }
-            // 其它状态
-            throw new BusinessException("使用了未知的状态");
-        }
-
-        @Override
-        public void setLock() {
-
-        }
-
-        public void addLine(Line line) {
-            Log log = mLogMap.get(line.info.getLogId());
-            if (null != log) {
-                log.lines.add(line);
-            }
-        }
-    }
-
     private static class FilterFactory extends BaseFilterFactory<Data, Log> {
 
         public List<BaseFilter<Data, Log>> getFilters() {
@@ -234,7 +236,11 @@ class QueryManagerTest {
 
     // ****************************************模型****************************************
 
-    private static class Data implements ISFileData, ILogData, IReportData {
+    private static class Data implements ISFileData, IStdData {
+
+        Index index;
+        long pointer;
+        QueryReport report;
 
         String lastDataId;
         final String curDataId = UUID.randomUUID().toString().replace("-", "");
@@ -242,7 +248,6 @@ class QueryManagerTest {
 
         private Map<String, Log> mLogMap = new HashMap<String, Log>();
         private List<Log> mLogList = new LinkedList<Log>();
-        private SFileRange mRange;
 
         public File getFileToLoad() {
             return new File("D:\\source.txt");
@@ -250,16 +255,6 @@ class QueryManagerTest {
 
         public String getFileCharset() {
             return "utf-8";
-        }
-
-        @Override
-        public SFileRange getLoadRange() {
-            return mRange;
-        }
-
-        @Override
-        public void setLoadRange(SFileRange range) {
-            mRange = range;
         }
 
         @Override
@@ -273,23 +268,8 @@ class QueryManagerTest {
         }
 
         @Override
-        public int getLimitCount() {
+        public int getLogLimit() {
             return 1;
-        }
-
-        @Override
-        public String getLastDataId() {
-            return lastDataId;
-        }
-
-        @Override
-        public String getCurDataId() {
-            return curDataId;
-        }
-
-        @Override
-        public String getNextDataId() {
-            return nextDataId;
         }
     }
 }

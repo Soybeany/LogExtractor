@@ -1,7 +1,5 @@
 package com.soybeany.sfile.data;
 
-import com.soybeany.sfile.loader.SFileRange;
-
 import java.io.File;
 
 /**
@@ -13,7 +11,4 @@ public interface ISFileData {
 
     String getFileCharset();
 
-    SFileRange getLoadRange();
-
-    void setLoadRange(SFileRange range);
 }

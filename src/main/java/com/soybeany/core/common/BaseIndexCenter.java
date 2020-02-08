@@ -9,7 +9,7 @@ public abstract class BaseIndexCenter<Data, Range, Index> extends BaseModule<Dat
     /**
      * 获得源索引
      */
-    public abstract Index getSourceIndex() throws ConcurrencyException;
+    public abstract Index getSourceIndex();
 
     /**
      * 获得拷贝索引

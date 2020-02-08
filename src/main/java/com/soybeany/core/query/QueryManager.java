@@ -13,19 +13,19 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
 
     public static final String PURPOSE = "整理";
 
-    private BaseDataAccessor<Data> mDataIdAccessor;
-    private BaseStorageCenter<Data, Report> mStorageCenter;
+    private BaseDataAccessor<Data, Index, Report> mDataIdAccessor;
+    private BaseStorageCenter<Data> mStorageCenter;
     private BaseLogFactory<Data, Line, Flag, Log> mLogFactory;
     private BaseFilterFactory<Data, Log> mFilterFactory;
-    private BaseReporter<Data, Log, Report> mReporter;
+    private BaseQueryReporter<Data, Log, Report> mReporter;
 
     // ****************************************设置API****************************************
 
-    public void setDataIdAccessor(BaseDataAccessor<Data> dataIdAccessor) {
+    public void setDataIdAccessor(BaseDataAccessor<Data, Index, Report> dataIdAccessor) {
         mDataIdAccessor = dataIdAccessor;
     }
 
-    public void setStorageCenter(BaseStorageCenter<Data, Report> center) {
+    public void setStorageCenter(BaseStorageCenter<Data> center) {
         mStorageCenter = center;
     }
 
@@ -37,7 +37,7 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
         mFilterFactory = factory;
     }
 
-    public void setReporter(BaseReporter<Data, Log, Report> reporter) {
+    public void setReporter(BaseQueryReporter<Data, Log, Report> reporter) {
         mReporter = reporter;
     }
 
@@ -49,9 +49,8 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
     public Report find(Data data) throws IOException, DataIdException, ConcurrencyException {
         checkDataStorage();
         checkDataAccessor();
-        String dataId = mDataIdAccessor.getCurDataId(data);
-        Report report = innerQuery(dataId, data);
-        mStorageCenter.saveData(dataId, data);
+        Report report = innerQuery(data);
+        mStorageCenter.saveData(mDataIdAccessor.getCurDataId(data), data);
         return report;
     }
 
@@ -60,51 +59,50 @@ public class QueryManager<Data, Range, Index, RLine, Line, Flag, Log, Report> ex
      */
     public Report findById(String dataId) throws IOException, DataIdException, ConcurrencyException {
         checkDataStorage();
-        try {
-            return mStorageCenter.loadReport(dataId);
-        } catch (DataIdException e) {
+        Data data = mStorageCenter.loadData(dataId);
+        Report report = mDataIdAccessor.getReport(data);
+        if (null == report) {
             checkDataAccessor();
-            return innerQuery(dataId, mStorageCenter.loadData(dataId));
+            report = innerQuery(data);
         }
+        return report;
     }
 
     // ****************************************重写方法****************************************
 
     @Override
-    protected Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter) {
-        return indexCenter.getCopiedIndex();
+    protected Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter, Data data) {
+        Index index = mDataIdAccessor.getIndex(data);
+        if (null == index) {
+            index = indexCenter.getCopiedIndex();
+            mDataIdAccessor.setIndex(data, index);
+        }
+        return index;
     }
 
     // ****************************************内部方法****************************************
 
-    private Report innerQuery(String dataId, Data data) throws IOException, DataIdException, ConcurrencyException {
+    private Report innerQuery(Data data) throws IOException, DataIdException, ConcurrencyException {
         // 检查模块
         setAndCheckModules(Arrays.asList(mLogFactory, mFilterFactory, mReporter));
         // 加载
         try {
             init(PURPOSE, data);
             // 按需补充日志
-            mLogFactory.setLock();
+            mLogFactory.attainLock();
             while (mReporter.needMoreLog()) {
                 if (parseLines(new Callback())) {
                     break;
                 }
             }
+            // 生成报告
+            Report report = mReporter.getNewReport();
+            mDataIdAccessor.setReport(data, report);
+            return report;
         } finally {
+            mLogFactory.releaseLock();
             finish();
         }
-        // 按需生成下一数据
-        boolean isLoadToEnd = isLoadToEnd();
-        if (!mReporter.needMoreLog() && !isLoadToEnd) {
-            Data nextData = mDataIdAccessor.getNextData(data);
-            String nextDataId = mDataIdAccessor.getCurDataId(nextData);
-            mDataIdAccessor.setNextDataId(data, nextDataId);
-            mStorageCenter.saveData(nextDataId, nextData);
-        }
-        // 生成报告
-        Report report = mReporter.getNewReport(isLoadToEnd);
-        mStorageCenter.saveReport(dataId, report);
-        return report;
     }
 
     private void checkDataStorage() {

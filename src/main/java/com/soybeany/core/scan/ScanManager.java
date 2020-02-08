@@ -2,8 +2,9 @@ package com.soybeany.core.scan;
 
 import com.soybeany.core.common.BaseIndexCenter;
 import com.soybeany.core.common.BaseManager;
-import com.soybeany.core.common.ConcurrencyException;
 import com.soybeany.core.common.BaseModule;
+import com.soybeany.core.common.ConcurrencyException;
+import com.soybeany.core.impl.center.SimpleUniqueLock;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -30,10 +31,13 @@ public class ScanManager<Data, Range, Index, RLine, Line, Flag> extends BaseMana
         // 检查模块
         setAndCheckModules(Collections.<BaseModule<Data>>singletonList(mCreatorFactory));
         // 加载
+        Index index = null;
         try {
-            Index index = init(PURPOSE, data);
+            index = init(PURPOSE, data);
+            SimpleUniqueLock.tryAttain(index, "索引正在创建，请稍后");
             parseLines(new Callback(index));
         } finally {
+            SimpleUniqueLock.release(index);
             finish();
         }
     }
@@ -41,7 +45,7 @@ public class ScanManager<Data, Range, Index, RLine, Line, Flag> extends BaseMana
     // ****************************************重写方法****************************************
 
     @Override
-    protected Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter) throws ConcurrencyException {
+    protected Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter, Data data) throws ConcurrencyException {
         return indexCenter.getSourceIndex();
     }
 

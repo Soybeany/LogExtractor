@@ -1,7 +1,7 @@
 package com.soybeany.std.data;
 
-import com.soybeany.sfile.data.IIndex;
-import com.soybeany.sfile.loader.SFileRange;
+import com.soybeany.sfile.data.ISFileIndex;
+import com.soybeany.sfile.data.SFileRange;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -9,17 +9,28 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class Index implements IIndex<Index> {
+public class Index implements ISFileIndex {
     public final Map<String, long[]> time = new HashMap<String, long[]>();
     public final Map<String, SFileRange> thread = new HashMap<String, SFileRange>();
     public final Map<String, SFileRange> url = new HashMap<String, SFileRange>();
 
-    @Override
-    public Index copy() {
-        Index index = new Index();
+    private long mPointer;
+
+    public Index copy(Index index) {
         index.time.putAll(time);
         index.thread.putAll(thread);
         index.url.putAll(url);
+        index.mPointer = mPointer;
         return index;
+    }
+
+    @Override
+    public long getPointer() {
+        return mPointer;
+    }
+
+    @Override
+    public void setPointer(long pointer) {
+        mPointer = pointer;
     }
 }

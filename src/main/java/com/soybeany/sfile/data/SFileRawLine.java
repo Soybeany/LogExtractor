@@ -1,4 +1,4 @@
-package com.soybeany.sfile.loader;
+package com.soybeany.sfile.data;
 
 /**
  * <br>Created by Soybeany on 2020/2/6.
@@ -22,7 +22,7 @@ public class SFileRawLine {
         return mLine;
     }
 
-    void update(long startPointer, long endPointer, String line) {
+    public void update(long startPointer, long endPointer, String line) {
         mStartPointer = startPointer;
         mEndPointer = endPointer;
         mLine = line;

@@ -1,4 +1,4 @@
-package com.soybeany.sfile.center;
+package com.soybeany.core.impl.center;
 
 import com.soybeany.core.common.DataIdException;
 
@@ -19,6 +19,7 @@ public class SimpleLruStorage {
         mCapacity = count;
     }
 
+    @SuppressWarnings("SameParameterValue")
     synchronized <T> T getAndCheck(String key, boolean checkValue) throws DataIdException {
         T value = get(key);
         if (null == value) {

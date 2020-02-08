@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ * 优先使用抽象模块来拓展功能，若模块已是具体实现类，才在数据上使用接口
  * <br>Created by Soybeany on 2020/2/5.
  */
 public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
@@ -49,10 +50,6 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
 
     // ****************************************子类调用****************************************
 
-    protected boolean isLoadToEnd() {
-        return mLoader.isLoadToEnd();
-    }
-
     protected void setAndCheckModules(List<BaseModule<Data>> modules) {
         mModules = new ArrayList<BaseModule<Data>>(modules);
         // 设置额外检测的模块
@@ -69,10 +66,10 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
         WORK_COUNT++;
         // 触发回调
         for (BaseModule<Data> module : mModules) {
-            module.onInit(data);
+            module.onActivate(data);
         }
         // 开启加载器
-        Index index = getIndex(mIndexCenter);
+        Index index = getIndex(mIndexCenter, data);
         mLoader.onOpen(mIndexCenter.getLoadRange(purpose, index));
         return index;
     }
@@ -84,7 +81,7 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
         } finally {
             // 触发回调
             for (BaseModule<Data> module : mModules) {
-                module.onFinish();
+                module.onInactivate();
             }
             // 减少计数
             WORK_COUNT--;
@@ -122,7 +119,7 @@ public abstract class BaseManager<Data, Range, Index, RLine, Line, Flag> {
         return null == rLine || null == lineString;
     }
 
-    protected abstract Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter) throws ConcurrencyException;
+    protected abstract Index getIndex(BaseIndexCenter<Data, Range, Index> indexCenter, Data data) throws ConcurrencyException;
 
     protected interface ICallback<RLine, Line, Flag> {
         /**

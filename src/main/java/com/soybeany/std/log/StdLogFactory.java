@@ -2,9 +2,9 @@ package com.soybeany.std.log;
 
 import com.soybeany.core.common.BusinessException;
 import com.soybeany.core.common.ConcurrencyException;
+import com.soybeany.core.impl.center.SimpleUniqueLock;
 import com.soybeany.core.query.BaseLogFactory;
-import com.soybeany.sfile.center.SimpleUniqueLock;
-import com.soybeany.std.data.ILogData;
+import com.soybeany.std.data.IStdData;
 import com.soybeany.std.data.Line;
 import com.soybeany.std.data.Log;
 import com.soybeany.std.data.flag.Flag;
@@ -14,25 +14,24 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdLogFactory<Data extends ILogData> extends BaseLogFactory<Data, Line, Flag, Log> {
+public class StdLogFactory<Data extends IStdData> extends BaseLogFactory<Data, Line, Flag, Log> {
 
     private Map<String, Log> mLogMap;
 
     @Override
-    public void onInit(Data data) {
-        super.onInit(data);
+    public void onActivate(Data data) {
+        super.onActivate(data);
         mLogMap = data.getLogMap();
     }
 
     @Override
-    public void onFinish() {
-        super.onFinish();
-        SimpleUniqueLock.release(mLogMap);
+    public void attainLock() throws ConcurrencyException {
+        SimpleUniqueLock.tryAttain(mLogMap, "日志正在生成，请稍后");
     }
 
     @Override
-    public void setLock() throws ConcurrencyException {
-        SimpleUniqueLock.tryAttain(mLogMap, "日志正在生成，请稍后");
+    public void releaseLock() {
+        SimpleUniqueLock.release(mLogMap);
     }
 
     @Override

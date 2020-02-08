@@ -2,6 +2,8 @@ package com.soybeany.sfile.loader;
 
 import com.soybeany.core.common.BaseLoader;
 import com.soybeany.sfile.data.ISFileData;
+import com.soybeany.sfile.data.SFileRange;
+import com.soybeany.sfile.data.SFileRawLine;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,12 +15,13 @@ import java.io.RandomAccessFile;
 public class SingleFileLoader<Data extends ISFileData> extends BaseLoader<Data, SFileRange, SFileRawLine> {
 
     private RandomAccessFile mRaf;
+
+    private long mStartPointer;
+    private long mTargetPointer;
     private long mLastPointer;
 
-    private Data mData;
     private File mFile;
     private String mCharset;
-    private SFileRange mLoadRange;
 
     @Override
     public SFileRawLine getNextRawLine() throws IOException {
@@ -26,43 +29,42 @@ public class SingleFileLoader<Data extends ISFileData> extends BaseLoader<Data, 
     }
 
     @Override
-    public boolean isLoadToEnd() {
-        return mLastPointer == mFile.length();
-    }
-
-    @Override
     public void onOpen(SFileRange range) throws IOException {
         mLastPointer = 0;
         mRaf = new BufferedRandomAccessFile(mFile, "r");
 
-        if (null == range) {
-            range = SFileRange.to(mFile.length());
-        }
-        mLoadRange = range;
-
-        mRaf.seek(mLoadRange.start);
+        mRaf.seek(range.start);
+        mStartPointer = mRaf.getFilePointer();
+        mTargetPointer = Math.min(mFile.length(), range.end);
     }
 
     @Override
     public void onClose() throws IOException {
-        if (null == mRaf) {
-            return;
+        if (null != mRaf) {
+            mRaf.close();
         }
-        mRaf.close();
-        mData.setLoadRange(SFileRange.between(mLoadRange.start, mLastPointer));
     }
 
     @Override
-    public void onInit(Data data) {
-        super.onInit(data);
-        mData = data;
+    public void onActivate(Data data) {
+        super.onActivate(data);
         mFile = data.getFileToLoad();
         mCharset = data.getFileCharset();
     }
 
+    public boolean isLoadToEnd() {
+        return mLastPointer == mFile.length();
+    }
+
+    public SFileRange getLoadedRange() {
+        return SFileRange.between(mStartPointer, mLastPointer);
+    }
+
+    // ****************************************内部方法****************************************
+
     private SFileRawLine innerGetNextRawLine(SFileRawLine rLine) throws IOException {
         // 判断是否已到达目标位点
-        if (mLoadRange.end <= mLastPointer) {
+        if (mTargetPointer <= mLastPointer) {
             rLine.update(mLastPointer, mLastPointer, null);
             return rLine;
         }

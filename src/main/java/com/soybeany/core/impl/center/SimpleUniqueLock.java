@@ -1,4 +1,4 @@
-package com.soybeany.sfile.center;
+package com.soybeany.core.impl.center;
 
 import com.soybeany.core.common.ConcurrencyException;
 

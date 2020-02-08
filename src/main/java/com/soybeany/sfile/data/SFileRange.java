@@ -1,4 +1,4 @@
-package com.soybeany.sfile.loader;
+package com.soybeany.sfile.data;
 
 /**
  * <br>Created by Soybeany on 2020/2/6.
@@ -18,6 +18,10 @@ public class SFileRange {
 
     public static SFileRange between(long start, long end) {
         return new SFileRange(start, end);
+    }
+
+    public static SFileRange max() {
+        return between(0, Long.MAX_VALUE);
     }
 
     private SFileRange(long start, long end) {
