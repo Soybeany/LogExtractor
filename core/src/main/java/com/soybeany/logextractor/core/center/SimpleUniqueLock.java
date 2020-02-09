@@ -1,26 +1,33 @@
 package com.soybeany.logextractor.core.center;
 
-import com.soybeany.logextractor.core.common.ConcurrencyException;
+import com.soybeany.logextractor.core.common.BusinessException;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
 public class SimpleUniqueLock {
 
-    private static final Set<Object> SET = new HashSet<Object>();
+    private static final Map<Object, String> SET = new HashMap<Object, String>();
 
-    public static synchronized void tryAttain(Object obj, String msg) throws ConcurrencyException {
-        if (SET.contains(obj)) {
-            throw new ConcurrencyException(msg);
+    public static synchronized void tryAttain(String id, Object obj, String msg) {
+        if (null == id) {
+            throw new BusinessException("SimpleUniqueLock的id不能为null");
         }
-        SET.add(obj);
+        if (SET.containsKey(obj)) {
+            throw new BusinessException(msg);
+        }
+        SET.put(obj, id);
     }
 
-    public static synchronized void release(Object obj) {
-        SET.remove(obj);
+    public static synchronized void release(String id, Object obj) {
+        if (null == id) {
+            return;
+        }
+        if (id.equals(SET.get(obj))) {
+            SET.remove(obj);
+        }
     }
-
 }

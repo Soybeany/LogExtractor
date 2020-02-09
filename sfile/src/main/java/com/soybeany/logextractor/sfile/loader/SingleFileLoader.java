@@ -1,7 +1,7 @@
 package com.soybeany.logextractor.sfile.loader;
 
 import com.soybeany.logextractor.core.common.BaseLoader;
-import com.soybeany.logextractor.sfile.data.ISFileData;
+import com.soybeany.logextractor.sfile.data.IFileInfoProvider;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.data.SFileRawLine;
 
@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/6.
  */
-public class SingleFileLoader<Data extends ISFileData, Index> extends BaseLoader<Data, SFileRawLine, Index> {
+public class SingleFileLoader<Index, Data extends IFileInfoProvider> extends BaseLoader<SFileRawLine, Index, Data> {
 
     private final List<IRangeProvider<Data, Index>> mProviders = new LinkedList<IRangeProvider<Data, Index>>();
     private RandomAccessFile mRaf;
@@ -26,6 +26,24 @@ public class SingleFileLoader<Data extends ISFileData, Index> extends BaseLoader
     private Data mData;
     private File mFile;
     private String mCharset;
+
+    @Override
+    public void onStart(Data data) throws Exception {
+        super.onStart(data);
+        mLastPointer = 0;
+        mData = data;
+        mFile = data.getFileToLoad();
+        mCharset = data.getFileCharset();
+        mRaf = new BufferedRandomAccessFile(mFile, "r");
+    }
+
+    @Override
+    public void onInit(String purpose, Index index) throws IOException {
+        SFileRange range = getRange(purpose, index);
+        mRaf.seek(range.start);
+        mStartPointer = mRaf.getFilePointer();
+        mTargetPointer = Math.min(mFile.length(), range.end);
+    }
 
     @Override
     public SFileRawLine getNextRawLine() throws IOException {
@@ -51,29 +69,11 @@ public class SingleFileLoader<Data extends ISFileData, Index> extends BaseLoader
     }
 
     @Override
-    public void onOpen(String purpose, Index index) throws IOException {
-        mLastPointer = 0;
-        mRaf = new BufferedRandomAccessFile(mFile, "r");
-
-        SFileRange range = getRange(purpose, index);
-        mRaf.seek(range.start);
-        mStartPointer = mRaf.getFilePointer();
-        mTargetPointer = Math.min(mFile.length(), range.end);
-    }
-
-    @Override
-    public void onClose() throws IOException {
+    public void onFinish() throws Exception {
+        super.onFinish();
         if (null != mRaf) {
             mRaf.close();
         }
-    }
-
-    @Override
-    public void onActivate(Data data) {
-        super.onActivate(data);
-        mData = data;
-        mFile = data.getFileToLoad();
-        mCharset = data.getFileCharset();
     }
 
     public void addRangeProvider(IRangeProvider<Data, Index> provider) {

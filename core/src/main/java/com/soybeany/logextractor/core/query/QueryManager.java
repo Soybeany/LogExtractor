@@ -1,38 +1,34 @@
 package com.soybeany.logextractor.core.query;
 
-import com.soybeany.logextractor.core.common.*;
+import com.soybeany.logextractor.core.common.BaseManager;
+import com.soybeany.logextractor.core.common.BaseModule;
+import com.soybeany.logextractor.core.data.IBaseData;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class QueryManager<Data, Index, RLine, Line, Flag, Log, Report> extends BaseManager<Data, Index, RLine, Line, Flag> {
+public class QueryManager<Index, RLine, Line, Flag, Log, Report, Data extends IBaseData<Index, Report>> extends BaseManager<Index, RLine, Line, Flag, Data> {
 
     public static final String PURPOSE = "整理";
 
-    private BaseDataAccessor<Data, Index, Report> mDataIdAccessor;
-    private BaseLogFactory<Data, Line, Flag, Log> mLogFactory;
-    private BaseFilterFactory<Data, Log> mFilterFactory;
-    private BaseQueryReporter<Data, Log, Report> mReporter;
+    private BaseLogFactory<Line, Flag, Log, Data> mLogFactory;
+    private BaseFilterFactory<Log, Data> mFilterFactory;
+    private BaseQueryReporter<Log, Report, Data> mReporter;
 
     // ****************************************设置API****************************************
 
-    public void setDataIdAccessor(BaseDataAccessor<Data, Index, Report> dataIdAccessor) {
-        mDataIdAccessor = dataIdAccessor;
-    }
-
-    public void setLogFactory(BaseLogFactory<Data, Line, Flag, Log> factory) {
+    public void setLogFactory(BaseLogFactory<Line, Flag, Log, Data> factory) {
         mLogFactory = factory;
     }
 
-    public void setFilterFactory(BaseFilterFactory<Data, Log> factory) {
+    public void setFilterFactory(BaseFilterFactory<Log, Data> factory) {
         mFilterFactory = factory;
     }
 
-    public void setReporter(BaseQueryReporter<Data, Log, Report> reporter) {
+    public void setReporter(BaseQueryReporter<Log, Report, Data> reporter) {
         mReporter = reporter;
     }
 
@@ -41,73 +37,67 @@ public class QueryManager<Data, Index, RLine, Line, Flag, Log, Report> extends B
     /**
      * 数据源查找
      */
-    public Report find(Data data) throws IOException, DataIdException, ConcurrencyException {
+    public Report find(Data data) {
         checkDataStorage();
-        checkDataAccessor();
         Report report = innerQuery(data);
-        mStorageCenter.saveData(mDataIdAccessor.getCurDataId(data), data);
+        mStorageCenter.saveData(data.getCurDataId(), data);
         return report;
     }
 
     /**
      * 先从报告集中查询，若没有则从数据源查找
      */
-    public Report findById(String dataId) throws IOException, DataIdException, ConcurrencyException {
+    public Report findById(String dataId) {
         checkDataStorage();
         Data data = mStorageCenter.loadData(dataId);
-        Report report = mDataIdAccessor.getReport(data);
+        Report report = data.getReport();
         if (null == report) {
-            checkDataAccessor();
             report = innerQuery(data);
         }
         return report;
     }
 
-    // ****************************************重写方法****************************************
-
-    @Override
-    protected Index getIndex(BaseStorageCenter<Data, Index> storageCenter, Data data) {
-        Index index = mDataIdAccessor.getIndex(data);
-        if (null == index) {
-            index = storageCenter.getCopiedIndex(data);
-            mDataIdAccessor.setIndex(data, index);
-        }
-        return index;
-    }
-
     // ****************************************内部方法****************************************
 
-    private Report innerQuery(Data data) throws IOException, ConcurrencyException {
+    private Report innerQuery(Data data) {
         // 检查模块
         setAndCheckModules(Arrays.asList(mLogFactory, mFilterFactory, mReporter));
         // 加载
         try {
-            init(PURPOSE, data);
-            // 按需补充日志
-            mLogFactory.attainLock();
+            start(PURPOSE, data, getIndex(data));
             while (mReporter.needMoreLog()) {
-                if (parseLines(new Callback())) {
+                if (extractLogs(new Callback())) {
                     break;
+                }
+            }
+            // 执行回调
+            for (BaseModule<Data> module : mModules) {
+                if (module instanceof IQueryListener) {
+                    ((IQueryListener) module).onReadyToGenerateReport();
                 }
             }
             // 生成报告
             Report report = mReporter.getNewReport();
-            mDataIdAccessor.setReport(data, report);
+            data.setReport(report);
             return report;
         } finally {
-            mLogFactory.releaseLock();
             finish();
         }
     }
 
-    private void checkDataAccessor() {
-        ToolUtils.checkNull(mDataIdAccessor, "DataAccessor未设置");
+    private Index getIndex(Data data) {
+        Index index = data.getIndex();
+        if (null == index) {
+            index = mStorageCenter.getCopiedIndex(data);
+            data.setIndex(index);
+        }
+        return index;
     }
 
     // ****************************************内部类****************************************
 
     private class Callback implements ICallback<RLine, Line, Flag> {
-        private List<BaseFilter<Data, Log>> mFilters = mFilterFactory.getFilters();
+        private List<BaseFilter<Log, Data>> mFilters = mFilterFactory.getFilters();
 
         public boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag) {
             // 若不是标签对象，则添加行
@@ -122,7 +112,7 @@ public class QueryManager<Data, Index, RLine, Line, Flag, Log, Report> extends B
                 return false;
             }
             // 过滤日志对象
-            for (BaseFilter<Data, Log> filter : mFilters) {
+            for (BaseFilter<Log, Data> filter : mFilters) {
                 if (filter.isFiltered(log)) {
                     return false;
                 }

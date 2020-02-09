@@ -1,37 +1,42 @@
 package com.soybeany.logextractor.std.log;
 
+import com.soybeany.logextractor.core.center.SimpleLruStorage;
 import com.soybeany.logextractor.core.center.SimpleUniqueLock;
 import com.soybeany.logextractor.core.common.BusinessException;
-import com.soybeany.logextractor.core.common.ConcurrencyException;
 import com.soybeany.logextractor.core.query.BaseLogFactory;
-import com.soybeany.logextractor.std.data.IStdData;
+import com.soybeany.logextractor.sfile.data.IRenewalInfoAccessor;
+import com.soybeany.logextractor.std.data.ILogStorageIdAccessor;
 import com.soybeany.logextractor.std.data.Line;
 import com.soybeany.logextractor.std.data.Log;
 import com.soybeany.logextractor.std.data.flag.Flag;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdLogFactory<Data extends IStdData> extends BaseLogFactory<Data, Line, Flag, Log> {
+public class StdLogFactory<Data extends IRenewalInfoAccessor & ILogStorageIdAccessor> extends BaseLogFactory<Line, Flag, Log, Data> {
 
+    private static SimpleLruStorage<String, Map<String, Log>> STORAGE = new SimpleLruStorage<String, Map<String, Log>>();
     private Map<String, Log> mLogMap;
+    private String mStorageId;
 
     @Override
-    public void onActivate(Data data) {
-        super.onActivate(data);
-        mLogMap = data.getLogMap();
+    public void onStart(Data data) throws Exception {
+        super.onStart(data);
+        mStorageId = data.getLogStorageId();
+        mLogMap = STORAGE.get(mStorageId);
+        if (null == mLogMap) {
+            STORAGE.put(mStorageId, mLogMap = new HashMap<String, Log>());
+        }
+        SimpleUniqueLock.tryAttain(hashCode() + "", mStorageId, "日志正在生成，请稍后");
     }
 
     @Override
-    public void attainLock() throws ConcurrencyException {
-        SimpleUniqueLock.tryAttain(mLogMap, "日志正在生成，请稍后");
-    }
-
-    @Override
-    public void releaseLock() {
-        SimpleUniqueLock.release(mLogMap);
+    public void onFinish() throws Exception {
+        super.onFinish();
+        SimpleUniqueLock.release(hashCode() + "", mStorageId);
     }
 
     @Override

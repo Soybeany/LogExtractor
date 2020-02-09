@@ -3,7 +3,7 @@ package com.soybeany.logextractor.core.common;
 /**
  * <br>Created by Soybeany on 2020/2/5.
  */
-public abstract class BaseStorageCenter<Data, Index> {
+public abstract class BaseStorageCenter<Index, Data> {
 
     /**
      * 获得源索引，需注意并发修改的问题
@@ -15,8 +15,8 @@ public abstract class BaseStorageCenter<Data, Index> {
      */
     public abstract Index getCopiedIndex(Data data);
 
-    public abstract Data loadData(String dataId) throws DataIdException;
+    public abstract Data loadData(String dataId);
 
-    public abstract void saveData(String dataId, Data data) throws DataIdException;
+    public abstract void saveData(String dataId, Data data);
 
 }

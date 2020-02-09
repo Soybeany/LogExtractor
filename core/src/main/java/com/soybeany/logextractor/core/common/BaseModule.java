@@ -5,11 +5,17 @@ package com.soybeany.logextractor.core.common;
  * <br>Created by Soybeany on 2020/2/6.
  */
 public abstract class BaseModule<Data> {
-    public void onActivate(Data data) {
+    /**
+     * 流程开始时进行的回调
+     */
+    public void onStart(Data data) throws Exception {
         // 子类按需实现
     }
 
-    public void onInactivate() {
+    /**
+     * 流程结束时进行的回调
+     */
+    public void onFinish() throws Exception {
         // 子类按需实现
     }
 }

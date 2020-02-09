@@ -1,18 +1,9 @@
 package com.soybeany.logextractor.std.data;
 
-import java.util.List;
-import java.util.Map;
+import com.soybeany.logextractor.sfile.data.ISFileData;
 
 /**
- * <br>Created by Soybeany on 2020/2/8.
+ * <br>Created by Soybeany on 2020/2/9.
  */
-public interface IStdData {
-
-    Map<String, Log> getLogMap();
-
-    List<Log> getLogList();
-
-    int getLogLimit();
-
-
+public interface IStdData<Index, Report> extends ISFileData<Index, Report>, ILogStorageIdAccessor, IReportInfo {
 }

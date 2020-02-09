@@ -7,22 +7,25 @@ import com.soybeany.logextractor.core.query.parser.BaseLineParser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
  * 优先使用抽象模块来拓展功能，若模块已是具体实现类，才在数据上使用接口
  * <br>Created by Soybeany on 2020/2/5.
  */
-public abstract class BaseManager<Data, Index, RLine, Line, Flag> {
+public abstract class BaseManager<Index, RLine, Line, Flag, Data> {
 
     private static int WORK_COUNT = 0;
 
-    protected BaseStorageCenter<Data, Index> mStorageCenter;
-    private BaseLoader<Data, RLine, Index> mLoader;
-    private BaseLineParser<Data, RLine, Line> mLineParser;
-    private BaseFlagParser<Data, Line, Flag> mFlagParser;
+    private final List<BaseModule<Data>> mExModules = new LinkedList<BaseModule<Data>>();
 
-    private List<BaseModule<Data>> mModules;
+    protected List<BaseModule<Data>> mModules;
+    protected BaseStorageCenter<Index, Data> mStorageCenter;
+
+    private BaseLoader<RLine, Index, Data> mLoader;
+    private BaseLineParser<RLine, Line, Data> mLineParser;
+    private BaseFlagParser<Line, Flag, Data> mFlagParser;
 
     // ****************************************输出API****************************************
 
@@ -30,21 +33,25 @@ public abstract class BaseManager<Data, Index, RLine, Line, Flag> {
         return WORK_COUNT;
     }
 
+    public void addModule(BaseModule<Data> module) {
+        mExModules.add(module);
+    }
+
     // ****************************************设置API****************************************
 
-    public void setStorageCenter(BaseStorageCenter<Data, Index> center) {
+    public void setStorageCenter(BaseStorageCenter<Index, Data> center) {
         mStorageCenter = center;
     }
 
-    public void setLoader(BaseLoader<Data, RLine, Index> loader) {
+    public void setLoader(BaseLoader<RLine, Index, Data> loader) {
         mLoader = loader;
     }
 
-    public void setLineParser(BaseLineParser<Data, RLine, Line> parser) {
+    public void setLineParser(BaseLineParser<RLine, Line, Data> parser) {
         mLineParser = parser;
     }
 
-    public void setFlagParser(BaseFlagParser<Data, Line, Flag> parser) {
+    public void setFlagParser(BaseFlagParser<Line, Flag, Data> parser) {
         mFlagParser = parser;
     }
 
@@ -58,6 +65,7 @@ public abstract class BaseManager<Data, Index, RLine, Line, Flag> {
         mModules = new ArrayList<BaseModule<Data>>(modules);
         // 设置额外检测的模块
         mModules.addAll(Arrays.asList(mLoader, mLineParser, mFlagParser));
+        mModules.addAll(mExModules);
         // 检测
         for (int i = 0; i < mModules.size(); i++) {
             BaseModule<Data> module = mModules.get(i);
@@ -65,65 +73,60 @@ public abstract class BaseManager<Data, Index, RLine, Line, Flag> {
         }
     }
 
-    protected synchronized Index init(String purpose, Data data) throws IOException {
+    protected synchronized void start(String purpose, Data data, Index index) {
+        // 触发回调
+        invokeOnStart(mModules, data);
         // 增加计数
         WORK_COUNT++;
-        // 触发回调
-        for (BaseModule<Data> module : mModules) {
-            module.onActivate(data);
+        // 初始化加载器
+        try {
+            mLoader.onInit(purpose, index);
+        } catch (IOException e) {
+            throw new BusinessException("加载器初始化异常:" + e.getMessage());
         }
-        // 开启加载器
-        Index index = getIndex(mStorageCenter, data);
-        mLoader.onOpen(purpose, index);
-        return index;
     }
 
-    protected synchronized void finish() throws IOException {
-        // 关闭加载器
-        try {
-            mLoader.onClose();
-        } finally {
-            // 触发回调
-            for (BaseModule<Data> module : mModules) {
-                module.onInactivate();
-            }
-            // 减少计数
-            WORK_COUNT--;
-        }
+    protected synchronized void finish() {
+        // 减少计数
+        WORK_COUNT--;
+        // 触发回调
+        invokeOnFinish(mModules);
     }
 
     /**
      * @return 是否到达文本末尾
      */
-    protected boolean parseLines(ICallback<RLine, Line, Flag> callback) throws IOException {
+    protected boolean extractLogs(ICallback<RLine, Line, Flag> callback) {
         Line lastLine = null;
         RLine rLine;
         String lineString = null;
         // 若数据源有数据，则继续
-        while (null != (rLine = mLoader.getNextRawLine()) && null != (lineString = mLineParser.getLineText(rLine))) {
-            // 将一行文本转换为行对象
-            Line curLine = mLineParser.parse(lineString);
-            // 若无法解析，则为上一行对象的文本
-            if (null == curLine) {
-                // 若有上一行对象，则将此文本添加到该行对象中
-                if (null != lastLine) {
-                    mLineParser.addContent(lastLine, lineString);
+        try {
+            while (null != (rLine = mLoader.getNextRawLine()) && null != (lineString = mLineParser.getLineText(rLine))) {
+                // 将一行文本转换为行对象
+                Line curLine = mLineParser.parse(lineString);
+                // 若无法解析，则为上一行对象的文本
+                if (null == curLine) {
+                    // 若有上一行对象，则将此文本添加到该行对象中
+                    if (null != lastLine) {
+                        mLineParser.addContent(lastLine, lineString);
+                    }
+                    continue;
                 }
-                continue;
+                // 执行回调
+                boolean needBreak = callback.onHandleLineAndFlag(rLine, curLine, mFlagParser.parse(curLine));
+                if (needBreak) {
+                    break;
+                }
+                // 更改上一行对象的指向
+                lastLine = curLine;
             }
-            // 执行回调
-            boolean needBreak = callback.onHandleLineAndFlag(rLine, curLine, mFlagParser.parse(curLine));
-            if (needBreak) {
-                break;
-            }
-            // 更改上一行对象的指向
-            lastLine = curLine;
+            // 若数据源已没数据，则返回打断标识
+            return null == rLine || null == lineString;
+        } catch (IOException e) {
+            throw new BusinessException("日志提取IO异常:" + e.getMessage());
         }
-        // 若数据源已没数据，则返回打断标识
-        return null == rLine || null == lineString;
     }
-
-    protected abstract Index getIndex(BaseStorageCenter<Data, Index> storageCenter, Data data);
 
     protected interface ICallback<RLine, Line, Flag> {
         /**
@@ -134,4 +137,29 @@ public abstract class BaseManager<Data, Index, RLine, Line, Flag> {
         boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag);
     }
 
+    // ****************************************内部方法****************************************
+
+    private void invokeOnStart(List<BaseModule<Data>> modules, Data data) {
+        for (BaseModule<Data> module : modules) {
+            try {
+                module.onStart(data);
+            } catch (Exception e) {
+                throw new BusinessException("模块(" + module + ")Start异常:" + e.getMessage());
+            }
+        }
+    }
+
+    private void invokeOnFinish(List<BaseModule<Data>> modules) {
+        String eMsg = null;
+        for (BaseModule<Data> module : modules) {
+            try {
+                module.onFinish();
+            } catch (Exception e) {
+                eMsg = "模块(" + module + ")Finish异常:" + e.getMessage();
+            }
+        }
+        if (null != eMsg) {
+            throw new BusinessException(eMsg);
+        }
+    }
 }

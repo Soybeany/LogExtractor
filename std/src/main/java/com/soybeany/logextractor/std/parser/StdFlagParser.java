@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public abstract class StdFlagParser<Data> extends BaseFlagParser<Data, Line, Flag> {
+public abstract class StdFlagParser<Data> extends BaseFlagParser<Line, Flag, Data> {
 
     private final Map<String, FlagFactory> mFactoryMap = new HashMap<String, FlagFactory>();
 

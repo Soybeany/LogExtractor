@@ -1,24 +1,19 @@
 package com.soybeany.logextractor.sfile;
 
+import com.soybeany.logextractor.core.common.BaseModule;
 import com.soybeany.logextractor.core.common.BaseStorageCenter;
-import com.soybeany.logextractor.core.common.ConcurrencyException;
-import com.soybeany.logextractor.core.common.DataIdException;
-import com.soybeany.logextractor.core.query.BaseFilterFactory;
-import com.soybeany.logextractor.core.query.BaseLogFactory;
-import com.soybeany.logextractor.core.query.BaseQueryReporter;
-import com.soybeany.logextractor.core.query.QueryManager;
+import com.soybeany.logextractor.core.common.ToolUtils;
+import com.soybeany.logextractor.core.query.*;
 import com.soybeany.logextractor.core.query.parser.BaseFlagParser;
 import com.soybeany.logextractor.core.query.parser.BaseLineParser;
 import com.soybeany.logextractor.core.scan.BaseCreatorFactory;
 import com.soybeany.logextractor.core.scan.ScanManager;
-import com.soybeany.logextractor.sfile.accessor.SFileDataAccessor;
 import com.soybeany.logextractor.sfile.data.ISFileData;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.data.SFileRawLine;
+import com.soybeany.logextractor.sfile.duplicator.SFileNextDataCreator;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
-
-import java.io.IOException;
 
 /**
  * 单文件日志提取器
@@ -26,61 +21,63 @@ import java.io.IOException;
  * <br>断点续查
  * <br>Created by Soybeany on 2020/2/8.
  */
-public class SFileLogExtractor<Data extends ISFileData, Index extends ISFileIndex, Line, Flag, Log, Report> {
+public class SFileLogExtractor<Index extends ISFileIndex, Line, Flag, Log, Report, Data extends ISFileData<Index, Report>> {
 
-    private ScanManager<Data, Index, SFileRawLine, Line, Flag> mScanManager = new ScanManager<Data, Index, SFileRawLine, Line, Flag>();
-    private QueryManager<Data, Index, SFileRawLine, Line, Flag, Log, Report> mQueryManager = new QueryManager<Data, Index, SFileRawLine, Line, Flag, Log, Report>();
+    private ScanManager<Index, SFileRawLine, Line, Flag, Data> mScanManager = new ScanManager<Index, SFileRawLine, Line, Flag, Data>();
+    private QueryManager<Index, SFileRawLine, Line, Flag, Log, Report, Data> mQueryManager = new QueryManager<Index, SFileRawLine, Line, Flag, Log, Report, Data>();
 
-    private SingleFileLoader<Data, Index> mLoader;
+    private SingleFileLoader<Index, Data> mLoader;
 
-    private SFileDataAccessor<Data, Index, Report> mDataAccessor;
-    private BaseStorageCenter<Data, Index> mStorageCenter;
-    private BaseQueryReporter<Data, Log, Report> mQueryReporter;
+    private SFileNextDataCreator<Data> mNextDataCreator;
+    private BaseStorageCenter<Index, Data> mStorageCenter;
+    private BaseQueryReporter<Log, Report, Data> mQueryReporter;
+
+    {
+        mQueryManager.addModule(new RenewModule());
+    }
 
     // ****************************************设置API****************************************
 
-    public void setStorageCenter(BaseStorageCenter<Data, Index> center) {
+    public void setStorageCenter(BaseStorageCenter<Index, Data> center) {
         mStorageCenter = center;
         mScanManager.setStorageCenter(center);
         mQueryManager.setStorageCenter(center);
     }
 
-    public void setLoader(SingleFileLoader<Data, Index> loader) {
+    public void setLoader(SingleFileLoader<Index, Data> loader) {
         mLoader = loader;
         mLoader.addRangeProvider(new RangeProvider());
         mScanManager.setLoader(loader);
         mQueryManager.setLoader(loader);
     }
 
-    public void setLineParser(BaseLineParser<Data, SFileRawLine, Line> parser) {
+    public void setLineParser(BaseLineParser<SFileRawLine, Line, Data> parser) {
         mScanManager.setLineParser(parser);
         mQueryManager.setLineParser(parser);
     }
 
-    public void setFlagParser(BaseFlagParser<Data, Line, Flag> parser) {
+    public void setFlagParser(BaseFlagParser<Line, Flag, Data> parser) {
         mScanManager.setFlagParser(parser);
         mQueryManager.setFlagParser(parser);
     }
 
-    public void setCreatorFactory(BaseCreatorFactory<Data, Index, SFileRawLine, Line, Flag> factory) {
+    public void setCreatorFactory(BaseCreatorFactory<Index, SFileRawLine, Line, Flag, Data> factory) {
         mScanManager.setCreatorFactory(factory);
     }
 
-    public void setDataAccessor(SFileDataAccessor<Data, Index, Report> dataAccessor) {
-        mDataAccessor = dataAccessor;
-        mQueryManager.setDataIdAccessor(dataAccessor);
-    }
-
-    public void setLogFactory(
-            BaseLogFactory<Data, Line, Flag, Log> factory) {
+    public void setLogFactory(BaseLogFactory<Line, Flag, Log, Data> factory) {
         mQueryManager.setLogFactory(factory);
     }
 
-    public void setFilterFactory(BaseFilterFactory<Data, Log> factory) {
+    public void setFilterFactory(BaseFilterFactory<Log, Data> factory) {
         mQueryManager.setFilterFactory(factory);
     }
 
-    public void setReporter(BaseQueryReporter<Data, Log, Report> reporter) {
+    public void setNextDataCreator(SFileNextDataCreator<Data> nextDataCreator) {
+        mNextDataCreator = nextDataCreator;
+    }
+
+    public void setReporter(BaseQueryReporter<Log, Report, Data> reporter) {
         mQueryReporter = reporter;
         mQueryManager.setReporter(reporter);
     }
@@ -90,45 +87,19 @@ public class SFileLogExtractor<Data extends ISFileData, Index extends ISFileInde
     /**
      * 数据源查找，使用指定的数据(全新查)
      */
-    public Report find(Data data) throws IOException, DataIdException, ConcurrencyException {
+    public Report find(Data data) {
         // 更新索引
         mScanManager.createIndexes(data);
         mStorageCenter.getSourceIndex(data).setPointer(mLoader.getLoadedRange().end);
-        onCreateIndexesFinish(data);
         // 执行查找
-        Report report = mQueryManager.find(data);
-        createNextDataIfNeed(data);
-        return report;
+        return mQueryManager.find(data);
     }
 
     /**
      * 先从报告集中查询，若没有则从数据源查找(断点续查)
      */
-    public Report findById(String dataId) throws IOException, DataIdException, ConcurrencyException {
-        Report report = mQueryManager.findById(dataId);
-        createNextDataIfNeed(mStorageCenter.loadData(dataId));
-        return report;
-    }
-
-    // ****************************************子类回调****************************************
-
-    protected void onCreateIndexesFinish(Data data) {
-        // 子类按需实现
-    }
-
-    // ****************************************内部方法****************************************
-
-    private void createNextDataIfNeed(Data data) throws DataIdException {
-        if (mQueryReporter.needMoreLog() || mLoader.isLoadToEnd()) {
-            return;
-        }
-        Data nextData = mDataAccessor.getNewData(data);
-        String curDataId = mDataAccessor.getCurDataId(data);
-        String nextDataId = mDataAccessor.getCurDataId(nextData);
-        mDataAccessor.setLastDataId(nextData, curDataId);
-        mDataAccessor.setNextDataId(data, nextDataId);
-        mDataAccessor.setPointer(nextData, mLoader.getLoadedRange().end);
-        mStorageCenter.saveData(nextDataId, nextData);
+    public Report findById(String dataId) {
+        return mQueryManager.findById(dataId);
     }
 
     // ****************************************内部类****************************************
@@ -138,13 +109,38 @@ public class SFileLogExtractor<Data extends ISFileData, Index extends ISFileInde
         public SFileRange getLoadRange(String purpose, Index index, Data data) {
             // 断点继续查询
             if (QueryManager.PURPOSE.equals(purpose)) {
-                return SFileRange.between(mDataAccessor.getPointer(data), index.getPointer());
+                return SFileRange.between(data.getPointer(), index.getPointer());
             }
             // 断点继续索引
             else if (ScanManager.PURPOSE.equals(purpose)) {
                 return SFileRange.from(index.getPointer());
             }
             return null;
+        }
+    }
+
+    private class RenewModule extends BaseModule<Data> implements IQueryListener {
+        private Data mData;
+
+        @Override
+        public void onStart(Data data) throws Exception {
+            super.onStart(data);
+            mData = data;
+        }
+
+        @Override
+        public void onReadyToGenerateReport() {
+            if (mQueryReporter.needMoreLog() || mLoader.isLoadToEnd()) {
+                return;
+            }
+            ToolUtils.checkNull(mNextDataCreator, "NextDataCreator不能为null");
+            Data nextData = mNextDataCreator.get(mData);
+            String curDataId = mData.getCurDataId();
+            String nextDataId = nextData.getCurDataId();
+            nextData.setLastDataId(curDataId);
+            mData.setNextDataId(nextDataId);
+            nextData.setPointer(mLoader.getLoadedRange().end);
+            mStorageCenter.saveData(nextDataId, nextData);
         }
     }
 }

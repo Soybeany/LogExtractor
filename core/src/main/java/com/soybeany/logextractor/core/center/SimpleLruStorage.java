@@ -1,6 +1,6 @@
 package com.soybeany.logextractor.core.center;
 
-import com.soybeany.logextractor.core.common.DataIdException;
+import com.soybeany.logextractor.core.common.BusinessException;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -10,48 +10,47 @@ import java.util.Set;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class SimpleLruStorage {
-    private final Map<String, Object> mMap = new LinkedHashMap<String, Object>(0, 0.75f, true);
+public class SimpleLruStorage<Key, Value> {
+    private final Map<Key, Value> mMap = new LinkedHashMap<Key, Value>(0, 0.75f, true);
 
     private int mCapacity = 10;
 
-    synchronized void setCapacity(int count) {
+    public synchronized void setCapacity(int count) {
         mCapacity = count;
     }
 
     @SuppressWarnings("SameParameterValue")
-    synchronized <T> T getAndCheck(String key, boolean checkValue) throws DataIdException {
-        T value = get(key);
+    public synchronized Value getAndCheck(Key key, boolean checkValue) {
+        Value value = get(key);
         if (null == value) {
             if (!mMap.containsKey(key)) {
-                throw new DataIdException("指定的id不存在");
+                throw new BusinessException("指定的id不存在");
             }
             if (checkValue) {
-                throw new DataIdException("指定的id没有找到数据");
+                throw new BusinessException("指定的id没有找到数据");
             }
         }
         return value;
     }
 
-    synchronized void putAndCheck(String key, Object value) throws DataIdException {
+    public synchronized void putAndCheck(Key key, Value value) {
         trimSize();
         if (mMap.containsKey(key)) {
-            throw new DataIdException("指定id的数据已存在");
+            throw new BusinessException("指定id的数据已存在");
         }
         mMap.put(key, value);
     }
 
-    @SuppressWarnings("unchecked")
-    synchronized <T> T get(String key) {
-        return (T) mMap.get(key);
+    public synchronized Value get(Key key) {
+        return mMap.get(key);
     }
 
-    synchronized void put(String key, Object value) {
+    public synchronized void put(Key key, Value value) {
         trimSize();
         mMap.put(key, value);
     }
 
-    synchronized void clear() {
+    public synchronized void clear() {
         mMap.clear();
     }
 
@@ -59,8 +58,8 @@ public class SimpleLruStorage {
         if (mMap.isEmpty()) {
             return;
         }
-        Set<String> keySet = mMap.keySet();
-        Iterator<String> iterator = keySet.iterator();
+        Set<Key> keySet = mMap.keySet();
+        Iterator<Key> iterator = keySet.iterator();
 
         while (keySet.size() >= mCapacity) {
             mMap.remove(iterator.next());

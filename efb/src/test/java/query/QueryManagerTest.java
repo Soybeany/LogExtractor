@@ -7,11 +7,11 @@ import com.soybeany.logextractor.core.query.BaseFilterFactory;
 import com.soybeany.logextractor.core.scan.BaseCreatorFactory;
 import com.soybeany.logextractor.core.scan.BaseIndexCreator;
 import com.soybeany.logextractor.efb.EFBRequestFlag;
-import com.soybeany.logextractor.sfile.accessor.SFileDataAccessor;
-import com.soybeany.logextractor.sfile.data.ISFileData;
+import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.data.SFileRawLine;
-import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
+import com.soybeany.logextractor.std.Loader.StdFileLoader;
 import com.soybeany.logextractor.std.StdLogExtractor;
+import com.soybeany.logextractor.std.creator.StdNextDataCreator;
 import com.soybeany.logextractor.std.data.*;
 import com.soybeany.logextractor.std.data.flag.Flag;
 import com.soybeany.logextractor.std.data.flag.FlagInfo;
@@ -22,7 +22,8 @@ import com.soybeany.logextractor.std.reporter.StdQueryReporter;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,12 +33,12 @@ import java.util.regex.Pattern;
 class QueryManagerTest {
 
     @Test
-    public void testLog() throws Exception {
+    public void testLog() {
         Data data = new Data();
-        StdLogExtractor<Data, Index, QueryReport> manager = new StdLogExtractor<Data, Index, QueryReport>();
-        manager.setDataAccessor(new DataAccessor());
-        manager.setStorageCenter(new MemStorageCenter<Data, Index>(new InfoProvider()));
-        manager.setLoader(new SingleFileLoader<Data, Index>());
+        StdLogExtractor<Index, QueryReport, Data> manager = new StdLogExtractor<Index, QueryReport, Data>();
+        manager.setStorageCenter(new MemStorageCenter<Index, Data>(new InfoProvider()));
+        manager.setNextDataCreator(new StdNextDataCreator<Data>());
+        manager.setLoader(new StdFileLoader<Index, Data>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
         manager.setLogFactory(new StdLogFactory<Data>());
@@ -52,72 +53,7 @@ class QueryManagerTest {
 
     // ****************************************模块****************************************
 
-    private static class DataAccessor extends SFileDataAccessor<Data, Index, QueryReport> {
-
-        @Override
-        public String getCurDataId(Data data) {
-            return data.curDataId;
-        }
-
-        @Override
-        public void setIndex(Data data, Index index) {
-            data.index = index;
-        }
-
-        @Override
-        public Index getIndex(Data data) {
-            return data.index;
-        }
-
-        @Override
-        public void setReport(Data data, QueryReport report) {
-            data.report = report;
-        }
-
-        @Override
-        public QueryReport getReport(Data data) {
-            return data.report;
-        }
-
-        @Override
-        public String getLastDataId(Data data) {
-            return data.lastDataId;
-        }
-
-        @Override
-        public void setLastDataId(Data data, String id) {
-            data.lastDataId = id;
-        }
-
-        @Override
-        public String getNextDataId(Data data) {
-            return data.nextDataId;
-        }
-
-        @Override
-        public void setNextDataId(Data data, String id) {
-            data.nextDataId = id;
-        }
-
-        @Override
-        public long getPointer(Data data) {
-            return data.pointer;
-        }
-
-        @Override
-        public void setPointer(Data data, long pointer) {
-            data.pointer = pointer;
-        }
-
-        @Override
-        public Data getNewData(Data source) {
-            Data nextData = new Data();
-            nextData.mLogMap = source.mLogMap;
-            return nextData;
-        }
-    }
-
-    private static class InfoProvider implements MemStorageCenter.IIndexProvider<Data, Index> {
+    private static class InfoProvider implements MemStorageCenter.IIndexProvider<Index, Data> {
         @Override
         public String getIndexKey(Data data) {
             return data.getFileToLoad().toString();
@@ -189,34 +125,34 @@ class QueryManagerTest {
         }
     }
 
-    private static class FilterFactory extends BaseFilterFactory<Data, Log> {
+    private static class FilterFactory extends BaseFilterFactory<Log, Data> {
 
-        public List<BaseFilter<Data, Log>> getFilters() {
+        public List<BaseFilter<Log, Data>> getFilters() {
             return Collections.emptyList();
         }
 
     }
 
-    private static class Filter extends BaseFilter<Data, Log> {
+    private static class Filter extends BaseFilter<Log, Data> {
         public boolean isFiltered(Log log) {
             return "100".equals(log.logId);
         }
 
     }
 
-    private static class CreatorFactory extends BaseCreatorFactory<Data, Index, SFileRawLine, Line, Flag> {
+    private static class CreatorFactory extends BaseCreatorFactory<Index, SFileRawLine, Line, Flag, Data> {
 
-        public List<? extends BaseIndexCreator<Data, Index, SFileRawLine, Line>> getLineCreators() {
+        public List<? extends BaseIndexCreator<Index, SFileRawLine, Line, Data>> getLineCreators() {
             return Collections.singletonList(new LineIndexCreator());
         }
 
-        public List<? extends BaseIndexCreator<Data, Index, SFileRawLine, Flag>> getFlagCreators() {
+        public List<? extends BaseIndexCreator<Index, SFileRawLine, Flag, Data>> getFlagCreators() {
             return Collections.singletonList(new FlagIndexCreator());
         }
 
     }
 
-    private static class LineIndexCreator extends BaseIndexCreator<Data, Index, SFileRawLine, Line> {
+    private static class LineIndexCreator extends BaseIndexCreator<Index, SFileRawLine, Line, Data> {
         public void onCreateIndex(Index index, SFileRawLine rLine, Line line) {
 //            int time = Integer.parseInt(line.info.time);
 //            if (null == index.time[time]) {
@@ -226,7 +162,7 @@ class QueryManagerTest {
 
     }
 
-    private static class FlagIndexCreator extends BaseIndexCreator<Data, Index, SFileRawLine, Flag> {
+    private static class FlagIndexCreator extends BaseIndexCreator<Index, SFileRawLine, Flag, Data> {
         public void onCreateIndex(Index index, SFileRawLine rLine, Flag flag) {
 
         }
@@ -235,18 +171,21 @@ class QueryManagerTest {
 
     // ****************************************模型****************************************
 
-    private static class Data implements ISFileData, IStdData {
+    private static class Data implements IStdData<Index, QueryReport> {
 
-        Index index;
-        long pointer;
-        QueryReport report;
+        private Index index;
+        private long pointer;
+        private QueryReport report;
 
-        String lastDataId;
-        final String curDataId = UUID.randomUUID().toString().replace("-", "");
-        String nextDataId;
+        private String lastDataId;
+        private String curDataId = StdNextDataCreator.getNewDataId();
+        ;
+        private String nextDataId;
+        private String storageId;
 
-        private Map<String, Log> mLogMap = new HashMap<String, Log>();
-        private List<Log> mLogList = new LinkedList<Log>();
+        private SFileRange scanRange;
+        private SFileRange queryRange;
+        private boolean canQueryMore;
 
         public File getFileToLoad() {
             return new File("D:\\source.txt");
@@ -257,18 +196,108 @@ class QueryManagerTest {
         }
 
         @Override
-        public Map<String, Log> getLogMap() {
-            return mLogMap;
-        }
-
-        @Override
-        public List<Log> getLogList() {
-            return mLogList;
-        }
-
-        @Override
         public int getLogLimit() {
             return 1;
+        }
+
+        @Override
+        public String getCurDataId() {
+            return curDataId;
+        }
+
+        @Override
+        public void setCurDataId(String dataId) {
+            curDataId = dataId;
+        }
+
+        @Override
+        public Index getIndex() {
+            return index;
+        }
+
+        @Override
+        public void setIndex(Index index) {
+            this.index = index;
+        }
+
+        @Override
+        public QueryReport getReport() {
+            return report;
+        }
+
+        @Override
+        public void setReport(QueryReport report) {
+            this.report = report;
+        }
+
+        @Override
+        public String getLastDataId() {
+            return lastDataId;
+        }
+
+        @Override
+        public void setLastDataId(String id) {
+            lastDataId = id;
+        }
+
+        @Override
+        public String getNextDataId() {
+            return nextDataId;
+        }
+
+        @Override
+        public void setNextDataId(String id) {
+            nextDataId = id;
+        }
+
+        @Override
+        public long getPointer() {
+            return pointer;
+        }
+
+        @Override
+        public void setPointer(long pointer) {
+            this.pointer = pointer;
+        }
+
+        @Override
+        public SFileRange getScanRange() {
+            return scanRange;
+        }
+
+        @Override
+        public void setScanRange(SFileRange range) {
+            scanRange = range;
+        }
+
+        @Override
+        public SFileRange getQueryRange() {
+            return queryRange;
+        }
+
+        @Override
+        public void setQueryRange(SFileRange range) {
+            queryRange = range;
+        }
+
+        @Override
+        public boolean canQueryMore() {
+            return canQueryMore;
+        }
+
+        @Override
+        public void setCanQueryMore(boolean flag) {
+            canQueryMore = flag;
+        }
+
+        @Override
+        public String getLogStorageId() {
+            return null != storageId ? storageId : curDataId;
+        }
+
+        @Override
+        public void setLogStorageId(String id) {
+            storageId = id;
         }
     }
 }
