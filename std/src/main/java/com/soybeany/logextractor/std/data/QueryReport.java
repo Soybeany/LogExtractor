@@ -17,7 +17,7 @@ public class QueryReport extends ScanReport {
     public String curDataId;
     public String nextDataId;
 
-    public long startPointer;
-    public long endPointer;
+    public Long startPointer;
+    public Long endPointer;
 
 }

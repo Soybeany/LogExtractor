@@ -2,7 +2,7 @@ package com.soybeany.logextractor.core.query;
 
 import com.soybeany.logextractor.core.common.BaseManager;
 import com.soybeany.logextractor.core.common.BaseModule;
-import com.soybeany.logextractor.core.data.IBaseData;
+import com.soybeany.logextractor.core.data.BaseData;
 
 import java.util.Arrays;
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class QueryManager<Index, RLine, Line, Flag, Log, Report, Data extends IBaseData<Index, Report>> extends BaseManager<Index, RLine, Line, Flag, Data> {
+public class QueryManager<Index, RLine, Line, Flag, Log, Report, Data extends BaseData<Index, Report>> extends BaseManager<Index, RLine, Line, Flag, Data> {
 
     public static final String PURPOSE = "整理";
 
@@ -40,7 +40,7 @@ public class QueryManager<Index, RLine, Line, Flag, Log, Report, Data extends IB
     public Report find(Data data) {
         checkDataStorage();
         Report report = innerQuery(data);
-        mStorageCenter.saveData(data.getCurDataId(), data);
+        mStorageCenter.saveData(data.getDataId(), data);
         return report;
     }
 

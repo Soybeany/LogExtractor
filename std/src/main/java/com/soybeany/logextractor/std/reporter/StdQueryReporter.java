@@ -2,7 +2,7 @@ package com.soybeany.logextractor.std.reporter;
 
 import com.soybeany.logextractor.core.query.BaseQueryReporter;
 import com.soybeany.logextractor.sfile.data.SFileRange;
-import com.soybeany.logextractor.std.data.IReportInfo;
+import com.soybeany.logextractor.std.data.IReportInfoProvider;
 import com.soybeany.logextractor.std.data.Log;
 import com.soybeany.logextractor.std.data.QueryReport;
 
@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdQueryReporter<Data extends IReportInfo> extends BaseQueryReporter<Log, QueryReport, Data> {
+public class StdQueryReporter<Data extends IReportInfoProvider> extends BaseQueryReporter<Log, QueryReport, Data> {
 
     private Data mData;
     private int mLogLimit;
@@ -44,11 +44,13 @@ public class StdQueryReporter<Data extends IReportInfo> extends BaseQueryReporte
         report.actualCount = mLogs.size();
         report.endReason = getEndReason(!needMoreLog(), !mData.canQueryMore());
         report.lastDataId = mData.getLastDataId();
-        report.curDataId = mData.getCurDataId();
+        report.curDataId = mData.getDataId();
         report.nextDataId = mData.getNextDataId();
         SFileRange queryRange = mData.getQueryRange();
-        report.startPointer = queryRange.start;
-        report.endPointer = queryRange.end;
+        if (null != queryRange) {
+            report.startPointer = queryRange.start;
+            report.endPointer = queryRange.end;
+        }
         SFileRange scanRange = mData.getScanRange();
         if (null != scanRange) {
             report.totalScan = scanRange.end;

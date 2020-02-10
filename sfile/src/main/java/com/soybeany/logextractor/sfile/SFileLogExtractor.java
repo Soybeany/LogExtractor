@@ -2,17 +2,17 @@ package com.soybeany.logextractor.sfile;
 
 import com.soybeany.logextractor.core.common.BaseModule;
 import com.soybeany.logextractor.core.common.BaseStorageCenter;
+import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.common.ToolUtils;
 import com.soybeany.logextractor.core.query.*;
 import com.soybeany.logextractor.core.query.parser.BaseFlagParser;
 import com.soybeany.logextractor.core.query.parser.BaseLineParser;
 import com.soybeany.logextractor.core.scan.BaseCreatorFactory;
 import com.soybeany.logextractor.core.scan.ScanManager;
-import com.soybeany.logextractor.sfile.data.ISFileData;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
+import com.soybeany.logextractor.sfile.data.SFileData;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.data.SFileRawLine;
-import com.soybeany.logextractor.sfile.duplicator.SFileNextDataCreator;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
 
 /**
@@ -21,16 +21,24 @@ import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
  * <br>断点续查
  * <br>Created by Soybeany on 2020/2/8.
  */
-public class SFileLogExtractor<Index extends ISFileIndex, Line, Flag, Log, Report, Data extends ISFileData<Index, Report>> {
+public class SFileLogExtractor<Index extends ISFileIndex, Line, Flag, Log, Report, Data extends SFileData<Index, Report>> {
 
     private ScanManager<Index, SFileRawLine, Line, Flag, Data> mScanManager = new ScanManager<Index, SFileRawLine, Line, Flag, Data>();
     private QueryManager<Index, SFileRawLine, Line, Flag, Log, Report, Data> mQueryManager = new QueryManager<Index, SFileRawLine, Line, Flag, Log, Report, Data>();
 
     private SingleFileLoader<Index, Data> mLoader;
-
-    private SFileNextDataCreator<Data> mNextDataCreator;
     private BaseStorageCenter<Index, Data> mStorageCenter;
     private BaseQueryReporter<Log, Report, Data> mQueryReporter;
+    private IDataCreator<Data> mDataCreator = new IDataCreator<Data>() {
+        @Override
+        public Data getNewData(Class<Data> clazz) {
+            try {
+                return clazz.newInstance();
+            } catch (Exception e) {
+                throw new BusinessException("无法创建新的数据实例:" + e.getMessage());
+            }
+        }
+    };
 
     {
         mQueryManager.addModule(new RenewModule());
@@ -73,13 +81,14 @@ public class SFileLogExtractor<Index extends ISFileIndex, Line, Flag, Log, Repor
         mQueryManager.setFilterFactory(factory);
     }
 
-    public void setNextDataCreator(SFileNextDataCreator<Data> nextDataCreator) {
-        mNextDataCreator = nextDataCreator;
-    }
-
     public void setReporter(BaseQueryReporter<Log, Report, Data> reporter) {
         mQueryReporter = reporter;
         mQueryManager.setReporter(reporter);
+    }
+
+    public void setDataCreator(IDataCreator<Data> dataCreator) {
+        ToolUtils.checkNull(dataCreator, "DataCreator不能设置为null");
+        mDataCreator = dataCreator;
     }
 
     // ****************************************输出API****************************************
@@ -103,6 +112,10 @@ public class SFileLogExtractor<Index extends ISFileIndex, Line, Flag, Log, Repor
     }
 
     // ****************************************内部类****************************************
+
+    public interface IDataCreator<Data> {
+        Data getNewData(Class<Data> clazz);
+    }
 
     private class RangeProvider implements SingleFileLoader.IRangeProvider<Data, Index> {
         @Override
@@ -129,18 +142,15 @@ public class SFileLogExtractor<Index extends ISFileIndex, Line, Flag, Log, Repor
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public void onReadyToGenerateReport() {
             if (mQueryReporter.needMoreLog() || mLoader.isLoadToEnd()) {
                 return;
             }
-            ToolUtils.checkNull(mNextDataCreator, "NextDataCreator不能为null");
-            Data nextData = mNextDataCreator.get(mData);
-            String curDataId = mData.getCurDataId();
-            String nextDataId = nextData.getCurDataId();
-            nextData.setLastDataId(curDataId);
-            mData.setNextDataId(nextDataId);
+            Data nextData = mDataCreator.getNewData((Class<Data>) mData.getClass());
+            nextData.beNextDataOf(mData);
             nextData.setPointer(mLoader.getLoadedRange().end);
-            mStorageCenter.saveData(nextDataId, nextData);
+            mStorageCenter.saveData(nextData.getDataId(), nextData);
         }
     }
 }

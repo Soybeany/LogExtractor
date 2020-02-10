@@ -5,7 +5,7 @@ package com.soybeany.logextractor.std.data;
  */
 public class ScanReport {
 
-    public long totalScan;
-    public long newScan;
+    public Long totalScan;
+    public Long newScan;
 
 }

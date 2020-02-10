@@ -7,11 +7,9 @@ import com.soybeany.logextractor.core.query.BaseFilterFactory;
 import com.soybeany.logextractor.core.scan.BaseCreatorFactory;
 import com.soybeany.logextractor.core.scan.BaseIndexCreator;
 import com.soybeany.logextractor.efb.EFBRequestFlag;
-import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.data.SFileRawLine;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
 import com.soybeany.logextractor.std.StdLogExtractor;
-import com.soybeany.logextractor.std.creator.StdNextDataCreator;
 import com.soybeany.logextractor.std.data.*;
 import com.soybeany.logextractor.std.data.flag.Flag;
 import com.soybeany.logextractor.std.data.flag.FlagInfo;
@@ -28,16 +26,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * todo limitCount为0时需调试，dataId为null时的提示语需优化，module增加优先级设置，默认的模块跨度以10为单位
  * <br>Created by Soybeany on 2020/2/5.
  */
 class QueryManagerTest {
 
     @Test
     public void testLog() {
-        Data data = new Data();
         StdLogExtractor<Index, QueryReport, Data> manager = new StdLogExtractor<Index, QueryReport, Data>();
         manager.setStorageCenter(new MemStorageCenter<Index, Data>(new InfoProvider()));
-        manager.setNextDataCreator(new StdNextDataCreator<Data>());
         manager.setLoader(new StdFileLoader<Index, Data>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
@@ -45,10 +42,13 @@ class QueryManagerTest {
         manager.setReporter(new StdQueryReporter<Data>());
         manager.setFilterFactory(new FilterFactory());
         manager.setCreatorFactory(new CreatorFactory());
-        QueryReport report = manager.find(data);
+        QueryReport report = manager.find(new Data());
         System.out.println(new Gson().toJson(report));
-        QueryReport report2 = manager.findById(report.nextDataId);
-        System.out.println(new Gson().toJson(report2));
+        String reportId;
+        if (null != (reportId = report.nextDataId)) {
+            QueryReport nextReport = manager.findById(reportId);
+            System.out.println(new Gson().toJson(nextReport));
+        }
     }
 
     // ****************************************模块****************************************
@@ -171,21 +171,11 @@ class QueryManagerTest {
 
     // ****************************************模型****************************************
 
-    private static class Data implements IStdData<Index, QueryReport> {
+    public static class Data extends StdData<Index, QueryReport> {
 
-        private Index index;
-        private long pointer;
-        private QueryReport report;
-
-        private String lastDataId;
-        private String curDataId = StdNextDataCreator.getNewDataId();
-        ;
-        private String nextDataId;
-        private String storageId;
-
-        private SFileRange scanRange;
-        private SFileRange queryRange;
-        private boolean canQueryMore;
+        static {
+            setIdGenerator(new SimpleIdGenerator());
+        }
 
         public File getFileToLoad() {
             return new File("D:\\source.txt");
@@ -198,106 +188,6 @@ class QueryManagerTest {
         @Override
         public int getLogLimit() {
             return 1;
-        }
-
-        @Override
-        public String getCurDataId() {
-            return curDataId;
-        }
-
-        @Override
-        public void setCurDataId(String dataId) {
-            curDataId = dataId;
-        }
-
-        @Override
-        public Index getIndex() {
-            return index;
-        }
-
-        @Override
-        public void setIndex(Index index) {
-            this.index = index;
-        }
-
-        @Override
-        public QueryReport getReport() {
-            return report;
-        }
-
-        @Override
-        public void setReport(QueryReport report) {
-            this.report = report;
-        }
-
-        @Override
-        public String getLastDataId() {
-            return lastDataId;
-        }
-
-        @Override
-        public void setLastDataId(String id) {
-            lastDataId = id;
-        }
-
-        @Override
-        public String getNextDataId() {
-            return nextDataId;
-        }
-
-        @Override
-        public void setNextDataId(String id) {
-            nextDataId = id;
-        }
-
-        @Override
-        public long getPointer() {
-            return pointer;
-        }
-
-        @Override
-        public void setPointer(long pointer) {
-            this.pointer = pointer;
-        }
-
-        @Override
-        public SFileRange getScanRange() {
-            return scanRange;
-        }
-
-        @Override
-        public void setScanRange(SFileRange range) {
-            scanRange = range;
-        }
-
-        @Override
-        public SFileRange getQueryRange() {
-            return queryRange;
-        }
-
-        @Override
-        public void setQueryRange(SFileRange range) {
-            queryRange = range;
-        }
-
-        @Override
-        public boolean canQueryMore() {
-            return canQueryMore;
-        }
-
-        @Override
-        public void setCanQueryMore(boolean flag) {
-            canQueryMore = flag;
-        }
-
-        @Override
-        public String getLogStorageId() {
-            return null != storageId ? storageId : curDataId;
-        }
-
-        @Override
-        public void setLogStorageId(String id) {
-            storageId = id;
         }
     }
 }

@@ -15,7 +15,7 @@ public interface ILoadDataAccessor {
 
     void setQueryRange(SFileRange range);
 
-    boolean canQueryMore();
+    Boolean canQueryMore();
 
     void setCanQueryMore(boolean flag);
 }

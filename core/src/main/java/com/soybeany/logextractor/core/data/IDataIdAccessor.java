@@ -5,7 +5,6 @@ package com.soybeany.logextractor.core.data;
  */
 public interface IDataIdAccessor {
 
-    String getCurDataId();
+    String getDataId();
 
-    void setCurDataId(String dataId);
 }
