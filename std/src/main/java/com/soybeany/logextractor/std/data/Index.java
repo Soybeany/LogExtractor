@@ -1,5 +1,7 @@
 package com.soybeany.logextractor.std.data;
 
+import com.soybeany.logextractor.core.common.BusinessException;
+import com.soybeany.logextractor.core.data.ICopiableIndex;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 
@@ -16,14 +18,6 @@ public class Index implements ISFileIndex {
 
     private long mPointer;
 
-    public Index copy(Index index) {
-        index.time.putAll(time);
-        index.thread.putAll(thread);
-        index.url.putAll(url);
-        index.mPointer = mPointer;
-        return index;
-    }
-
     @Override
     public long getPointer() {
         return mPointer;
@@ -32,5 +26,17 @@ public class Index implements ISFileIndex {
     @Override
     public void setPointer(long pointer) {
         mPointer = pointer;
+    }
+
+    @Override
+    public void copy(ICopiableIndex index) {
+        if (!(index instanceof Index)) {
+            throw new BusinessException("类型不匹配，无法拷贝");
+        }
+        Index otherIndex = (Index) index;
+        time.putAll(otherIndex.time);
+        thread.putAll(otherIndex.thread);
+        url.putAll(otherIndex.url);
+        mPointer = otherIndex.mPointer;
     }
 }

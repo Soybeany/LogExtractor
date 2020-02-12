@@ -7,6 +7,8 @@ import com.soybeany.logextractor.core.query.BaseFilterFactory;
 import com.soybeany.logextractor.core.scan.BaseCreatorFactory;
 import com.soybeany.logextractor.core.scan.BaseIndexCreator;
 import com.soybeany.logextractor.efb.EFBRequestFlag;
+import com.soybeany.logextractor.sfile.SFileLogExtractor;
+import com.soybeany.logextractor.sfile.data.ISFileParam;
 import com.soybeany.logextractor.sfile.data.SFileRawLine;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
 import com.soybeany.logextractor.std.StdLogExtractor;
@@ -26,23 +28,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * todo limitCount为0时需调试，dataId为null时的提示语需优化，module增加优先级设置，默认的模块跨度以10为单位
+ * todo limitCount为0时需调试，module增加优先级设置，默认的模块跨度以10为单位
  * <br>Created by Soybeany on 2020/2/5.
  */
 class QueryManagerTest {
 
     @Test
     public void testLog() {
-        StdLogExtractor<Index, QueryReport, Data> manager = new StdLogExtractor<Index, QueryReport, Data>();
-        manager.setStorageCenter(new MemStorageCenter<Index, Data>(new InfoProvider()));
-        manager.setLoader(new StdFileLoader<Index, Data>());
+        StdLogExtractor<Param, Index, QueryReport, Data> manager = new StdLogExtractor<Param, Index, QueryReport, Data>(Data.class, Index.class);
+        manager.setIdGenerator(new SFileLogExtractor.SimpleIdGenerator());
+        manager.setIndexStorageCenter(new MemStorageCenter<Index>());
+        manager.setDataStorageCenter(new MemStorageCenter<Data>());
+        manager.setLoader(new StdFileLoader<Param, Index, Data>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
-        manager.setLogFactory(new StdLogFactory<Data>());
-        manager.setReporter(new StdQueryReporter<Data>());
+        manager.setLogFactory(new StdLogFactory<Param, Data>());
+        manager.setReporter(new StdQueryReporter<Param, Data>());
         manager.setFilterFactory(new FilterFactory());
         manager.setCreatorFactory(new CreatorFactory());
-        QueryReport report = manager.find(new Data());
+        QueryReport report = manager.find(new Param());
         System.out.println(new Gson().toJson(report));
         String reportId;
         if (null != (reportId = report.nextDataId)) {
@@ -53,24 +57,7 @@ class QueryManagerTest {
 
     // ****************************************模块****************************************
 
-    private static class InfoProvider implements MemStorageCenter.IIndexProvider<Index, Data> {
-        @Override
-        public String getIndexKey(Data data) {
-            return data.getFileToLoad().toString();
-        }
-
-        @Override
-        public Index getNewIndex() {
-            return new Index();
-        }
-
-        @Override
-        public Index getCopy(Index source) {
-            return source.copy(new Index());
-        }
-    }
-
-    private static class LineParser extends StdLineParser<Data> {
+    private static class LineParser extends StdLineParser<Param, Data> {
         private static Pattern PATTERN = Pattern.compile("(\\d+)-(\\d+)-(.*)");
 
         public Line parse(String s) {
@@ -86,7 +73,7 @@ class QueryManagerTest {
         }
     }
 
-    private static class FlagParser extends StdFlagParser<Data> {
+    private static class FlagParser extends StdFlagParser<Param, Data> {
         private static Pattern PATTERN = Pattern.compile("FLAG-(.+)-(.+):(.+)");
 
         {
@@ -125,34 +112,34 @@ class QueryManagerTest {
         }
     }
 
-    private static class FilterFactory extends BaseFilterFactory<Log, Data> {
+    private static class FilterFactory extends BaseFilterFactory<Param, Log, Data> {
 
-        public List<BaseFilter<Log, Data>> getFilters() {
+        public List<BaseFilter<Param, Log, Data>> getFilters() {
             return Collections.emptyList();
         }
 
     }
 
-    private static class Filter extends BaseFilter<Log, Data> {
+    private static class Filter extends BaseFilter<Param, Log, Data> {
         public boolean isFiltered(Log log) {
             return "100".equals(log.logId);
         }
 
     }
 
-    private static class CreatorFactory extends BaseCreatorFactory<Index, SFileRawLine, Line, Flag, Data> {
+    private static class CreatorFactory extends BaseCreatorFactory<Param, Index, SFileRawLine, Line, Flag, Data> {
 
-        public List<? extends BaseIndexCreator<Index, SFileRawLine, Line, Data>> getLineCreators() {
+        public List<? extends BaseIndexCreator<Param, Index, SFileRawLine, Line, Data>> getLineCreators() {
             return Collections.singletonList(new LineIndexCreator());
         }
 
-        public List<? extends BaseIndexCreator<Index, SFileRawLine, Flag, Data>> getFlagCreators() {
+        public List<? extends BaseIndexCreator<Param, Index, SFileRawLine, Flag, Data>> getFlagCreators() {
             return Collections.singletonList(new FlagIndexCreator());
         }
 
     }
 
-    private static class LineIndexCreator extends BaseIndexCreator<Index, SFileRawLine, Line, Data> {
+    private static class LineIndexCreator extends BaseIndexCreator<Param, Index, SFileRawLine, Line, Data> {
         public void onCreateIndex(Index index, SFileRawLine rLine, Line line) {
 //            int time = Integer.parseInt(line.info.time);
 //            if (null == index.time[time]) {
@@ -162,7 +149,7 @@ class QueryManagerTest {
 
     }
 
-    private static class FlagIndexCreator extends BaseIndexCreator<Index, SFileRawLine, Flag, Data> {
+    private static class FlagIndexCreator extends BaseIndexCreator<Param, Index, SFileRawLine, Flag, Data> {
         public void onCreateIndex(Index index, SFileRawLine rLine, Flag flag) {
 
         }
@@ -171,11 +158,7 @@ class QueryManagerTest {
 
     // ****************************************模型****************************************
 
-    public static class Data extends StdData<Index, QueryReport> {
-
-        static {
-            setIdGenerator(new SimpleIdGenerator());
-        }
+    public static class Param implements ISFileParam, IStdReporterParam {
 
         public File getFileToLoad() {
             return new File("D:\\source.txt");
@@ -189,5 +172,13 @@ class QueryManagerTest {
         public int getLogLimit() {
             return 1;
         }
+
+        @Override
+        public String getIndexId() {
+            return getFileToLoad().toString();
+        }
+    }
+
+    public static class Data extends StdData<Param, Index, QueryReport> {
     }
 }

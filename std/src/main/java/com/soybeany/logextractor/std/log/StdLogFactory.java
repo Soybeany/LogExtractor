@@ -9,18 +9,19 @@ import com.soybeany.logextractor.std.data.Line;
 import com.soybeany.logextractor.std.data.Log;
 import com.soybeany.logextractor.std.data.flag.Flag;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdLogFactory<Data extends IRenewalInfoAccessor & ILogStorageAccessor> extends BaseLogFactory<Line, Flag, Log, Data> {
+public class StdLogFactory<Param, Data extends IRenewalInfoAccessor & ILogStorageAccessor> extends BaseLogFactory<Param, Line, Flag, Log, Data> {
 
     private Map<String, Log> mLogMap;
 
     @Override
-    public void onStart(Data data) throws Exception {
-        super.onStart(data);
+    public void onStart(Param param, Data data) throws Exception {
+        super.onStart(param, data);
         mLogMap = data.getLogStorage();
         SimpleUniqueLock.tryAttain(hashCode() + "", mLogMap, "日志正在生成，请稍后");
     }
@@ -32,13 +33,14 @@ public class StdLogFactory<Data extends IRenewalInfoAccessor & ILogStorageAccess
     }
 
     @Override
-    public void addLine(Line line) {
+    public Log addLine(Line line) {
         String logId = line.info.getLogId();
         Log log = mLogMap.get(logId);
         if (null == log) {
             log = new Log(logId);
         }
         log.lines.add(line);
+        return null;
     }
 
     @Override
@@ -60,5 +62,10 @@ public class StdLogFactory<Data extends IRenewalInfoAccessor & ILogStorageAccess
         }
         // 其它状态
         throw new BusinessException("使用了未知的状态");
+    }
+
+    @Override
+    public Collection<Log> getIncompleteLogs() {
+        return null;
     }
 }

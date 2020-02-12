@@ -14,18 +14,25 @@ import java.util.List;
  * 优先使用抽象模块来拓展功能，若模块已是具体实现类，才在数据上使用接口
  * <br>Created by Soybeany on 2020/2/5.
  */
-public abstract class BaseManager<Index, RLine, Line, Flag, Data> {
+public abstract class BaseManager<Param, Index, RLine, Line, Flag, Data> {
 
     private static int WORK_COUNT = 0;
 
-    private final List<BaseModule<Data>> mExModules = new LinkedList<BaseModule<Data>>();
+    private final List<BaseModule<Param, Data>> mExModules = new LinkedList<BaseModule<Param, Data>>();
 
-    protected List<BaseModule<Data>> mModules;
-    protected BaseStorageCenter<Index, Data> mStorageCenter;
+    protected List<BaseModule<Param, Data>> mModules;
 
-    private BaseLoader<RLine, Index, Data> mLoader;
-    private BaseLineParser<RLine, Line, Data> mLineParser;
-    private BaseFlagParser<Line, Flag, Data> mFlagParser;
+    private IInstanceFactory<Index> mIndexInstanceFactory;
+    private BaseStorageCenter<Index> mIndexStorageCenter;
+
+    private BaseLoader<Param, RLine, Index, Data> mLoader;
+    private BaseLineParser<Param, RLine, Line, Data> mLineParser;
+    private BaseFlagParser<Param, Line, Flag, Data> mFlagParser;
+
+    public BaseManager(IInstanceFactory<Index> factory) {
+        ToolUtils.checkNull(factory, "IndexInstanceFactory不能设置为null");
+        mIndexInstanceFactory = factory;
+    }
 
     // ****************************************输出API****************************************
 
@@ -33,49 +40,47 @@ public abstract class BaseManager<Index, RLine, Line, Flag, Data> {
         return WORK_COUNT;
     }
 
-    public void addModule(BaseModule<Data> module) {
+    public void addModule(BaseModule<Param, Data> module) {
         mExModules.add(module);
     }
 
     // ****************************************设置API****************************************
 
-    public void setStorageCenter(BaseStorageCenter<Index, Data> center) {
-        mStorageCenter = center;
+    public void setIndexStorageCenter(BaseStorageCenter<Index> center) {
+        mIndexStorageCenter = center;
     }
 
-    public void setLoader(BaseLoader<RLine, Index, Data> loader) {
+    public void setLoader(BaseLoader<Param, RLine, Index, Data> loader) {
         mLoader = loader;
     }
 
-    public void setLineParser(BaseLineParser<RLine, Line, Data> parser) {
+    public void setLineParser(BaseLineParser<Param, RLine, Line, Data> parser) {
         mLineParser = parser;
     }
 
-    public void setFlagParser(BaseFlagParser<Line, Flag, Data> parser) {
+    public void setFlagParser(BaseFlagParser<Param, Line, Flag, Data> parser) {
         mFlagParser = parser;
     }
 
     // ****************************************子类调用****************************************
 
-    protected void checkDataStorage() {
-        ToolUtils.checkNull(mStorageCenter, "StorageCenter未设置");
-    }
-
-    protected void setAndCheckModules(List<BaseModule<Data>> modules) {
-        mModules = new ArrayList<BaseModule<Data>>(modules);
+    protected void setAndCheckModules(List<BaseModule<Param, Data>> modules) {
+        // 检测非模块组件
+        ToolUtils.checkNull(mIndexStorageCenter, "IndexStorageCenter不能设置为null");
+        mModules = new ArrayList<BaseModule<Param, Data>>(modules);
         // 设置额外检测的模块
         mModules.addAll(Arrays.asList(mLoader, mLineParser, mFlagParser));
         mModules.addAll(mExModules);
-        // 检测
+        // 检测模块
         for (int i = 0; i < mModules.size(); i++) {
-            BaseModule<Data> module = mModules.get(i);
+            BaseModule<Param, Data> module = mModules.get(i);
             ToolUtils.checkNull(module, "模块设置不完整(" + i + ")");
         }
     }
 
-    protected synchronized void start(String purpose, Data data, Index index) {
+    protected synchronized void start(String purpose, Param param, Data data, Index index) {
         // 触发回调
-        invokeOnStart(mModules, data);
+        invokeOnStart(mModules, param, data);
         // 增加计数
         WORK_COUNT++;
         // 初始化加载器
@@ -91,6 +96,10 @@ public abstract class BaseManager<Index, RLine, Line, Flag, Data> {
         WORK_COUNT--;
         // 触发回调
         invokeOnFinish(mModules);
+    }
+
+    protected Index getIndexFromStorageCenter(String indexId) {
+        return mIndexStorageCenter.loadAndSaveIfNotExist(indexId, mIndexInstanceFactory);
     }
 
     /**
@@ -128,30 +137,21 @@ public abstract class BaseManager<Index, RLine, Line, Flag, Data> {
         }
     }
 
-    protected interface ICallback<RLine, Line, Flag> {
-        /**
-         * @param line 不为null
-         * @param flag 此行对应为的标签，可为null
-         * @return 是否需要中断
-         */
-        boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag);
-    }
-
     // ****************************************内部方法****************************************
 
-    private void invokeOnStart(List<BaseModule<Data>> modules, Data data) {
-        for (BaseModule<Data> module : modules) {
+    private void invokeOnStart(List<BaseModule<Param, Data>> modules, Param param, Data data) {
+        for (BaseModule<Param, Data> module : modules) {
             try {
-                module.onStart(data);
+                module.onStart(param, data);
             } catch (Exception e) {
                 throw new BusinessException("模块(" + module + ")Start异常:" + e.getMessage());
             }
         }
     }
 
-    private void invokeOnFinish(List<BaseModule<Data>> modules) {
+    private void invokeOnFinish(List<BaseModule<Param, Data>> modules) {
         String eMsg = null;
-        for (BaseModule<Data> module : modules) {
+        for (BaseModule<Param, Data> module : modules) {
             try {
                 module.onFinish();
             } catch (Exception e) {
@@ -162,4 +162,16 @@ public abstract class BaseManager<Index, RLine, Line, Flag, Data> {
             throw new BusinessException(eMsg);
         }
     }
+
+    // ****************************************内部类****************************************
+
+    protected interface ICallback<RLine, Line, Flag> {
+        /**
+         * @param line 不为null
+         * @param flag 此行对应为的标签，可为null
+         * @return 是否需要中断
+         */
+        boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag);
+    }
+
 }

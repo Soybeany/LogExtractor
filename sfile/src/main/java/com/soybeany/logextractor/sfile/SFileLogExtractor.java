@@ -1,19 +1,15 @@
 package com.soybeany.logextractor.sfile;
 
-import com.soybeany.logextractor.core.common.BaseModule;
-import com.soybeany.logextractor.core.common.BaseStorageCenter;
-import com.soybeany.logextractor.core.common.BusinessException;
-import com.soybeany.logextractor.core.common.ToolUtils;
+import com.soybeany.logextractor.core.common.*;
 import com.soybeany.logextractor.core.query.*;
 import com.soybeany.logextractor.core.query.parser.BaseFlagParser;
 import com.soybeany.logextractor.core.query.parser.BaseLineParser;
 import com.soybeany.logextractor.core.scan.BaseCreatorFactory;
 import com.soybeany.logextractor.core.scan.ScanManager;
-import com.soybeany.logextractor.sfile.data.ISFileIndex;
-import com.soybeany.logextractor.sfile.data.SFileData;
-import com.soybeany.logextractor.sfile.data.SFileRange;
-import com.soybeany.logextractor.sfile.data.SFileRawLine;
+import com.soybeany.logextractor.sfile.data.*;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
+
+import java.util.UUID;
 
 /**
  * 单文件日志提取器
@@ -21,105 +17,153 @@ import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
  * <br>断点续查
  * <br>Created by Soybeany on 2020/2/8.
  */
-public class SFileLogExtractor<Index extends ISFileIndex, Line, Flag, Log, Report, Data extends SFileData<Index, Report>> {
+public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIndex, Line, Flag, Log, Report, Data extends SFileData<Param, Index, Report>> {
 
-    private ScanManager<Index, SFileRawLine, Line, Flag, Data> mScanManager = new ScanManager<Index, SFileRawLine, Line, Flag, Data>();
-    private QueryManager<Index, SFileRawLine, Line, Flag, Log, Report, Data> mQueryManager = new QueryManager<Index, SFileRawLine, Line, Flag, Log, Report, Data>();
+    private IIdGenerator mIdGenerator = new UUIDGenerator();
 
-    private SingleFileLoader<Index, Data> mLoader;
-    private BaseStorageCenter<Index, Data> mStorageCenter;
-    private BaseQueryReporter<Log, Report, Data> mQueryReporter;
-    private IDataCreator<Data> mDataCreator = new IDataCreator<Data>() {
-        @Override
-        public Data getNewData(Class<Data> clazz) {
-            try {
-                return clazz.newInstance();
-            } catch (Exception e) {
-                throw new BusinessException("无法创建新的数据实例:" + e.getMessage());
-            }
-        }
-    };
+    private ScanManager<Param, Index, SFileRawLine, Line, Flag, Data> mScanManager;
+    private QueryManager<Param, Index, SFileRawLine, Line, Flag, Log, Report, Data> mQueryManager;
 
-    {
+    private IInstanceFactory<Data> mDataInstanceFactory;
+
+    private BaseStorageCenter<Data> mDataStorageCenter;
+    private BaseStorageCenter<Index> mIndexStorageCenter;
+
+    private SingleFileLoader<Param, Index, Data> mLoader;
+    private BaseQueryReporter<Param, Log, Report, Data> mQueryReporter;
+
+    public SFileLogExtractor(IInstanceFactory<Data> dataFactory, IInstanceFactory<Index> indexFactory) {
+        ToolUtils.checkNull(dataFactory, "DataInstanceFactory不能设置为null");
+        mScanManager = new ScanManager<Param, Index, SFileRawLine, Line, Flag, Data>(indexFactory);
+        mQueryManager = new QueryManager<Param, Index, SFileRawLine, Line, Flag, Log, Report, Data>(indexFactory);
+        mDataInstanceFactory = dataFactory;
+
         mQueryManager.addModule(new RenewModule());
     }
 
     // ****************************************设置API****************************************
 
-    public void setStorageCenter(BaseStorageCenter<Index, Data> center) {
-        mStorageCenter = center;
-        mScanManager.setStorageCenter(center);
-        mQueryManager.setStorageCenter(center);
+    public void setIdGenerator(IIdGenerator generator) {
+        if (null == generator) {
+            throw new BusinessException("IdGenerator不能为null");
+        }
+        mIdGenerator = generator;
     }
 
-    public void setLoader(SingleFileLoader<Index, Data> loader) {
+    public void setIndexStorageCenter(BaseStorageCenter<Index> center) {
+        mScanManager.setIndexStorageCenter(center);
+        mQueryManager.setIndexStorageCenter(center);
+        mIndexStorageCenter = center;
+    }
+
+    public void setLoader(SingleFileLoader<Param, Index, Data> loader) {
         mLoader = loader;
         mLoader.addRangeProvider(new RangeProvider());
         mScanManager.setLoader(loader);
         mQueryManager.setLoader(loader);
     }
 
-    public void setLineParser(BaseLineParser<SFileRawLine, Line, Data> parser) {
+    public void setLineParser(BaseLineParser<Param, SFileRawLine, Line, Data> parser) {
         mScanManager.setLineParser(parser);
         mQueryManager.setLineParser(parser);
     }
 
-    public void setFlagParser(BaseFlagParser<Line, Flag, Data> parser) {
+    public void setFlagParser(BaseFlagParser<Param, Line, Flag, Data> parser) {
         mScanManager.setFlagParser(parser);
         mQueryManager.setFlagParser(parser);
     }
 
-    public void setCreatorFactory(BaseCreatorFactory<Index, SFileRawLine, Line, Flag, Data> factory) {
+    public void setCreatorFactory(BaseCreatorFactory<Param, Index, SFileRawLine, Line, Flag, Data> factory) {
         mScanManager.setCreatorFactory(factory);
     }
 
-    public void setLogFactory(BaseLogFactory<Line, Flag, Log, Data> factory) {
+    public void setLogFactory(BaseLogFactory<Param, Line, Flag, Log, Data> factory) {
         mQueryManager.setLogFactory(factory);
     }
 
-    public void setFilterFactory(BaseFilterFactory<Log, Data> factory) {
+    public void setFilterFactory(BaseFilterFactory<Param, Log, Data> factory) {
         mQueryManager.setFilterFactory(factory);
     }
 
-    public void setReporter(BaseQueryReporter<Log, Report, Data> reporter) {
-        mQueryReporter = reporter;
+    public void setReporter(BaseQueryReporter<Param, Log, Report, Data> reporter) {
         mQueryManager.setReporter(reporter);
+        mQueryReporter = reporter;
     }
 
-    public void setDataCreator(IDataCreator<Data> dataCreator) {
-        ToolUtils.checkNull(dataCreator, "DataCreator不能设置为null");
-        mDataCreator = dataCreator;
+    public void setDataStorageCenter(BaseStorageCenter<Data> center) {
+        mDataStorageCenter = center;
     }
+
 
     // ****************************************输出API****************************************
 
     /**
      * 数据源查找，使用指定的数据(全新查)
      */
-    public Report find(Data data) {
+    public Report find(Param param) {
+        ToolUtils.checkNull(param, "param不能为null");
+        // 获取数据
+        Data data = getData(mIdGenerator.getNewId());
+        data.param = param;
         // 更新索引
-        mScanManager.createIndexes(data);
-        mStorageCenter.getSourceIndex(data).setPointer(mLoader.getLoadedRange().end);
+        mScanManager.createIndexes(param, data);
+        mIndexStorageCenter.load(param.getIndexId()).setPointer(mLoader.getLoadedRange().end);
         // 执行查找
-        return mQueryManager.find(data);
+        Report report = mQueryManager.find(param, data);
+        // 记录报告
+        data.report = report;
+        return report;
     }
 
     /**
      * 先从报告集中查询，若没有则从数据源查找(断点续查)
      */
     public Report findById(String dataId) {
-        return mQueryManager.findById(dataId);
+        ToolUtils.checkNull(dataId, "DataId不能为null");
+        Data data = getData(dataId);
+        Report report = data.report;
+        if (null == report) {
+            report = mQueryManager.find(data.param, data);
+        }
+        return report;
     }
 
-    // ****************************************内部类****************************************
+    // ****************************************内部方法****************************************
 
-    public interface IDataCreator<Data> {
-        Data getNewData(Class<Data> clazz);
+    private Data getData(String dataId) {
+        ToolUtils.checkNull(mDataStorageCenter, "DataStorageCenter不能为null");
+        Data data = mDataStorageCenter.loadAndSaveIfNotExist(dataId, mDataInstanceFactory);
+        data.setCurDataId(dataId);
+        return data;
     }
 
-    private class RangeProvider implements SingleFileLoader.IRangeProvider<Data, Index> {
+    // ****************************************静态内部类****************************************
+
+    public interface IIdGenerator {
+        String getNewId();
+    }
+
+    public static class UUIDGenerator implements IIdGenerator {
         @Override
-        public SFileRange getLoadRange(String purpose, Index index, Data data) {
+        public String getNewId() {
+            return UUID.randomUUID().toString().replace("-", "");
+        }
+    }
+
+    public static class SimpleIdGenerator implements IIdGenerator {
+        private int a;
+
+        @Override
+        public synchronized String getNewId() {
+            return ++a + "";
+        }
+    }
+
+    // ****************************************成员内部类****************************************
+
+    private class RangeProvider implements SingleFileLoader.IRangeProvider<Param, Data, Index> {
+        @Override
+        public SFileRange getLoadRange(Param param, String purpose, Index index, Data data) {
             // 断点继续查询
             if (QueryManager.PURPOSE.equals(purpose)) {
                 return SFileRange.between(data.getPointer(), index.getPointer());
@@ -132,25 +176,23 @@ public class SFileLogExtractor<Index extends ISFileIndex, Line, Flag, Log, Repor
         }
     }
 
-    private class RenewModule extends BaseModule<Data> implements IQueryListener {
+    private class RenewModule extends BaseModule<Param, Data> implements IQueryListener {
         private Data mData;
 
         @Override
-        public void onStart(Data data) throws Exception {
-            super.onStart(data);
+        public void onStart(Param param, Data data) throws Exception {
+            super.onStart(param, data);
             mData = data;
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public void onReadyToGenerateReport() {
             if (mQueryReporter.needMoreLog() || mLoader.isLoadToEnd()) {
                 return;
             }
-            Data nextData = mDataCreator.getNewData((Class<Data>) mData.getClass());
+            Data nextData = getData(mIdGenerator.getNewId());
             nextData.beNextDataOf(mData);
             nextData.setPointer(mLoader.getLoadedRange().end);
-            mStorageCenter.saveData(nextData.getDataId(), nextData);
         }
     }
 }

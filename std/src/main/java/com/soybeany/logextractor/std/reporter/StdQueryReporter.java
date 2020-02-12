@@ -1,8 +1,10 @@
 package com.soybeany.logextractor.std.reporter;
 
 import com.soybeany.logextractor.core.query.BaseQueryReporter;
+import com.soybeany.logextractor.sfile.data.IRenewalInfoAccessor;
 import com.soybeany.logextractor.sfile.data.SFileRange;
-import com.soybeany.logextractor.std.data.IReportInfoProvider;
+import com.soybeany.logextractor.std.data.ILoadDataAccessor;
+import com.soybeany.logextractor.std.data.IStdReporterParam;
 import com.soybeany.logextractor.std.data.Log;
 import com.soybeany.logextractor.std.data.QueryReport;
 
@@ -12,17 +14,17 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdQueryReporter<Data extends IReportInfoProvider> extends BaseQueryReporter<Log, QueryReport, Data> {
+public class StdQueryReporter<Param extends IStdReporterParam, Data extends ILoadDataAccessor & IRenewalInfoAccessor> extends BaseQueryReporter<Param, Log, QueryReport, Data> {
 
     private Data mData;
     private int mLogLimit;
     private List<Log> mLogs;
 
     @Override
-    public void onStart(Data data) throws Exception {
-        super.onStart(data);
+    public void onStart(Param param, Data data) throws Exception {
+        super.onStart(param, data);
         mData = data;
-        mLogLimit = data.getLogLimit();
+        mLogLimit = param.getLogLimit();
         mLogs = new LinkedList<Log>();
     }
 
@@ -44,7 +46,7 @@ public class StdQueryReporter<Data extends IReportInfoProvider> extends BaseQuer
         report.actualCount = mLogs.size();
         report.endReason = getEndReason(!needMoreLog(), !mData.canQueryMore());
         report.lastDataId = mData.getLastDataId();
-        report.curDataId = mData.getDataId();
+        report.curDataId = mData.getCurDataId();
         report.nextDataId = mData.getNextDataId();
         SFileRange queryRange = mData.getQueryRange();
         if (null != queryRange) {

@@ -1,15 +1,17 @@
 package com.soybeany.logextractor.sfile.data;
 
-import com.soybeany.logextractor.core.data.IDataIdAccessor;
-
 /**
  * <br>Created by Soybeany on 2020/2/9.
  */
-public interface IRenewalInfoAccessor extends IDataIdAccessor {
+public interface IRenewalInfoAccessor {
 
     String getLastDataId();
 
     void setLastDataId(String id);
+
+    String getCurDataId();
+
+    void setCurDataId(String id);
 
     String getNextDataId();
 

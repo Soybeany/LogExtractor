@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public abstract class BaseLoader<RLine, Index, Data> extends BaseModule<Data> {
+public abstract class BaseLoader<Param, RLine, Index, Data> extends BaseModule<Param, Data> {
 
     public abstract void onInit(String purpose, Index index) throws IOException;
 

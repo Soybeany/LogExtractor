@@ -1,7 +1,7 @@
 package com.soybeany.logextractor.sfile.loader;
 
 import com.soybeany.logextractor.core.common.BaseLoader;
-import com.soybeany.logextractor.sfile.data.IFileInfoProvider;
+import com.soybeany.logextractor.sfile.data.ISFileLoaderParam;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.data.SFileRawLine;
 
@@ -14,26 +14,30 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/6.
  */
-public class SingleFileLoader<Index, Data extends IFileInfoProvider> extends BaseLoader<SFileRawLine, Index, Data> {
+public class SingleFileLoader<Param extends ISFileLoaderParam, Index, Data> extends BaseLoader<Param, SFileRawLine, Index, Data> {
 
-    private final List<IRangeProvider<Data, Index>> mProviders = new LinkedList<IRangeProvider<Data, Index>>();
+    private final List<IRangeProvider<Param, Data, Index>> mProviders = new LinkedList<IRangeProvider<Param, Data, Index>>();
     private RandomAccessFile mRaf;
 
     private long mStartPointer;
     private long mTargetPointer;
     private long mLastPointer;
 
+    private Param mParam;
     private Data mData;
     private File mFile;
     private String mCharset;
 
     @Override
-    public void onStart(Data data) throws Exception {
-        super.onStart(data);
+    public void onStart(Param param, Data data) throws Exception {
+        super.onStart(param, data);
         mLastPointer = 0;
+
+        mParam = param;
         mData = data;
-        mFile = data.getFileToLoad();
-        mCharset = data.getFileCharset();
+
+        mFile = param.getFileToLoad();
+        mCharset = param.getFileCharset();
         mRaf = new BufferedRandomAccessFile(mFile, "r");
     }
 
@@ -76,7 +80,7 @@ public class SingleFileLoader<Index, Data extends IFileInfoProvider> extends Bas
         }
     }
 
-    public void addRangeProvider(IRangeProvider<Data, Index> provider) {
+    public void addRangeProvider(IRangeProvider<Param, Data, Index> provider) {
         mProviders.add(provider);
     }
 
@@ -92,8 +96,8 @@ public class SingleFileLoader<Index, Data extends IFileInfoProvider> extends Bas
 
     private SFileRange getRange(String purpose, Index index) {
         SFileRange range = SFileRange.max();
-        for (IRangeProvider<Data, Index> provider : mProviders) {
-            SFileRange tmpRange = provider.getLoadRange(purpose, index, mData);
+        for (IRangeProvider<Param, Data, Index> provider : mProviders) {
+            SFileRange tmpRange = provider.getLoadRange(mParam, purpose, index, mData);
             if (null == tmpRange) {
                 continue;
             }
@@ -109,8 +113,8 @@ public class SingleFileLoader<Index, Data extends IFileInfoProvider> extends Bas
 
     // ****************************************内部类****************************************
 
-    public interface IRangeProvider<Data, Index> {
-        SFileRange getLoadRange(String purpose, Index index, Data data);
+    public interface IRangeProvider<Param, Data, Index> {
+        SFileRange getLoadRange(Param param, String purpose, Index index, Data data);
     }
 
 }

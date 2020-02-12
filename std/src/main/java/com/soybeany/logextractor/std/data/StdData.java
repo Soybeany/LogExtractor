@@ -1,5 +1,6 @@
 package com.soybeany.logextractor.std.data;
 
+import com.soybeany.logextractor.sfile.data.IRenewalInfoAccessor;
 import com.soybeany.logextractor.sfile.data.SFileData;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 
@@ -10,7 +11,7 @@ import java.util.Map;
  * 子类必须重写{@link #beNextDataOf}方法，设置新增的字段
  * <br>Created by Soybeany on 2020/2/10.
  */
-public abstract class StdData<Index, Report> extends SFileData<Index, Report> implements ILogStorageAccessor, IReportInfoProvider {
+public abstract class StdData<Param, Index, Report> extends SFileData<Param, Index, Report> implements ILogStorageAccessor, IRenewalInfoAccessor, ILoadDataAccessor {
 
     private SFileRange mScanRange;
     private SFileRange mQueryRange;
@@ -58,12 +59,12 @@ public abstract class StdData<Index, Report> extends SFileData<Index, Report> im
     }
 
     @Override
-    public void beNextDataOf(SFileData<Index, Report> data) {
+    public void beNextDataOf(SFileData<Param, Index, Report> data) {
         super.beNextDataOf(data);
         if (!(data instanceof StdData)) {
             return;
         }
-        StdData<Index, Report> stdData = (StdData<Index, Report>) data;
+        StdData<Param, Index, Report> stdData = (StdData<Param, Index, Report>) data;
         mLogStorage = stdData.getLogStorage();
     }
 }
