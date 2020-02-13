@@ -3,9 +3,9 @@ package com.soybeany.logextractor.std.parser;
 import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.common.ToolUtils;
 import com.soybeany.logextractor.core.query.parser.BaseFlagParser;
-import com.soybeany.logextractor.std.data.Line;
-import com.soybeany.logextractor.std.data.flag.Flag;
-import com.soybeany.logextractor.std.data.flag.FlagInfo;
+import com.soybeany.logextractor.std.data.StdLine;
+import com.soybeany.logextractor.std.data.flag.StdFlag;
+import com.soybeany.logextractor.std.data.flag.StdFlagInfo;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public abstract class StdFlagParser<Param, Data> extends BaseFlagParser<Param, Line, Flag, Data> {
+public abstract class StdFlagParser<Param, Data> extends BaseFlagParser<Param, StdLine, StdFlag, Data> {
 
     private final Map<String, FlagFactory> mFactoryMap = new HashMap<String, FlagFactory>();
 
@@ -25,8 +25,8 @@ public abstract class StdFlagParser<Param, Data> extends BaseFlagParser<Param, L
     }
 
     @Override
-    public Flag parse(Line line) {
-        FlagInfo info = toFlagInfo(line);
+    public StdFlag parse(StdLine line) {
+        StdFlagInfo info = toFlagInfo(line);
         if (null == info) {
             return null;
         }
@@ -41,12 +41,12 @@ public abstract class StdFlagParser<Param, Data> extends BaseFlagParser<Param, L
         return factory.get(matcher, info);
     }
 
-    protected abstract FlagInfo toFlagInfo(Line line);
+    protected abstract StdFlagInfo toFlagInfo(StdLine line);
 
     public static abstract class FlagFactory {
 
         public abstract Pattern getPattern();
 
-        public abstract Flag get(Matcher matcher, FlagInfo info);
+        public abstract StdFlag get(Matcher matcher, StdFlagInfo info);
     }
 }

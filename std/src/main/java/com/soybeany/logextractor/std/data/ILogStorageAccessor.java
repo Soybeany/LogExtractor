@@ -7,8 +7,8 @@ import java.util.Map;
  */
 public interface ILogStorageAccessor {
 
-    Map<String, Log> getLogStorage();
+    Map<String, StdLog> getLogStorage();
 
-    void setLogStorage(Map<String, Log> storage);
+    void setLogStorage(Map<String, StdLog> storage);
 
 }

@@ -16,7 +16,7 @@ public abstract class StdData<Param, Index, Report> extends SFileData<Param, Ind
     private SFileRange mScanRange;
     private SFileRange mQueryRange;
     private Boolean mCanLoadMore;
-    private Map<String, Log> mLogStorage = new LinkedHashMap<String, Log>();
+    private Map<String, StdLog> mLogStorage = new LinkedHashMap<String, StdLog>();
 
     @Override
     public SFileRange getScanRange() {
@@ -49,12 +49,12 @@ public abstract class StdData<Param, Index, Report> extends SFileData<Param, Ind
     }
 
     @Override
-    public Map<String, Log> getLogStorage() {
+    public Map<String, StdLog> getLogStorage() {
         return mLogStorage;
     }
 
     @Override
-    public void setLogStorage(Map<String, Log> storage) {
+    public void setLogStorage(Map<String, StdLog> storage) {
         mLogStorage = storage;
     }
 

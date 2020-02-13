@@ -20,9 +20,9 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     private IInstanceFactory<Index> mIndexFactory;
 
-    private BaseLogFactory<Param, Line, Flag, Log, Data> mLogFactory;
+    private BaseLogAssembler<Param, Line, Flag, Log, Data> mLogAssembler;
     private BaseFilterFactory<Param, Log, Data> mFilterFactory;
-    private BaseQueryReporter<Param, Log, Report, Data> mReporter;
+    private BaseLogReporter<Param, Log, Report, Data> mReporter;
 
     public QueryManager(IInstanceFactory<Index> indexFactory) {
         super(indexFactory);
@@ -31,15 +31,15 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     // ****************************************设置API****************************************
 
-    public void setLogFactory(BaseLogFactory<Param, Line, Flag, Log, Data> factory) {
-        mLogFactory = factory;
+    public void setLogFactory(BaseLogAssembler<Param, Line, Flag, Log, Data> assembler) {
+        mLogAssembler = assembler;
     }
 
     public void setFilterFactory(BaseFilterFactory<Param, Log, Data> factory) {
         mFilterFactory = factory;
     }
 
-    public void setReporter(BaseQueryReporter<Param, Log, Report, Data> reporter) {
+    public void setReporter(BaseLogReporter<Param, Log, Report, Data> reporter) {
         mReporter = reporter;
     }
 
@@ -50,7 +50,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
      */
     public Report find(Param param, Data data) {
         // 检查模块
-        setAndCheckModules(Arrays.asList(mLogFactory, mFilterFactory, mReporter));
+        setAndCheckModules(Arrays.asList(mLogAssembler, mFilterFactory, mReporter));
         // 加载
         try {
             start(PURPOSE, param, data, getIndexFromData(param, data));
@@ -110,11 +110,11 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
             Log log;
             // 若不是标签对象，则添加行
             if (null == flag) {
-                log = mLogFactory.addLine(line);
+                log = mLogAssembler.addLine(line);
             }
             // 否则添加标签
             else {
-                log = mLogFactory.addFlag(flag);
+                log = mLogAssembler.addFlag(flag);
             }
             // 若没有日志对象则直接返回
             if (null == log) {

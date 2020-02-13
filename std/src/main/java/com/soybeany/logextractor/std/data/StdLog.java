@@ -1,6 +1,6 @@
 package com.soybeany.logextractor.std.data;
 
-import com.soybeany.logextractor.std.data.flag.Flag;
+import com.soybeany.logextractor.std.data.flag.StdFlag;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -8,14 +8,14 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class Log {
+public class StdLog {
 
     public final String logId;
-    public Flag startFlag;
-    public Flag endFlag;
-    public final List<Line> lines = new LinkedList<Line>();
+    public StdFlag startFlag;
+    public StdFlag endFlag;
+    public final List<StdLine> lines = new LinkedList<StdLine>();
 
-    public Log(String logId) {
+    public StdLog(String logId) {
         this.logId = logId;
     }
 
@@ -26,7 +26,7 @@ public class Log {
         if (null != endFlag) {
             return endFlag.type;
         }
-        return Flag.TYPE_UNKNOWN;
+        return StdFlag.TYPE_UNKNOWN;
     }
 
     public boolean isComplete() {

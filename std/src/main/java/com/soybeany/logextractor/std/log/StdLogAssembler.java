@@ -2,12 +2,12 @@ package com.soybeany.logextractor.std.log;
 
 import com.soybeany.logextractor.core.center.SimpleUniqueLock;
 import com.soybeany.logextractor.core.common.BusinessException;
-import com.soybeany.logextractor.core.query.BaseLogFactory;
+import com.soybeany.logextractor.core.query.BaseLogAssembler;
 import com.soybeany.logextractor.sfile.data.IRenewalInfoAccessor;
 import com.soybeany.logextractor.std.data.ILogStorageAccessor;
-import com.soybeany.logextractor.std.data.Line;
-import com.soybeany.logextractor.std.data.Log;
-import com.soybeany.logextractor.std.data.flag.Flag;
+import com.soybeany.logextractor.std.data.StdLine;
+import com.soybeany.logextractor.std.data.StdLog;
+import com.soybeany.logextractor.std.data.flag.StdFlag;
 
 import java.util.Collection;
 import java.util.Map;
@@ -15,9 +15,9 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdLogFactory<Param, Data extends IRenewalInfoAccessor & ILogStorageAccessor> extends BaseLogFactory<Param, Line, Flag, Log, Data> {
+public class StdLogAssembler<Param, Data extends IRenewalInfoAccessor & ILogStorageAccessor> extends BaseLogAssembler<Param, StdLine, StdFlag, StdLog, Data> {
 
-    private Map<String, Log> mLogMap;
+    private Map<String, StdLog> mLogMap;
 
     @Override
     public void onStart(Param param, Data data) throws Exception {
@@ -33,28 +33,28 @@ public class StdLogFactory<Param, Data extends IRenewalInfoAccessor & ILogStorag
     }
 
     @Override
-    public Log addLine(Line line) {
+    public StdLog addLine(StdLine line) {
         String logId = line.info.getLogId();
-        Log log = mLogMap.get(logId);
+        StdLog log = mLogMap.get(logId);
         if (null == log) {
-            log = new Log(logId);
+            log = new StdLog(logId);
         }
         log.lines.add(line);
         return null;
     }
 
     @Override
-    public Log addFlag(Flag flag) {
+    public StdLog addFlag(StdFlag flag) {
         String logId = flag.info.getLogId();
         // 若为开始状态
-        if (Flag.STATE_START.equals(flag.state)) {
-            Log log = new Log(logId);
+        if (StdFlag.STATE_START.equals(flag.state)) {
+            StdLog log = new StdLog(logId);
             log.startFlag = flag;
             return mLogMap.put(logId, log);
         }
         // 若为结束状态
-        if (Flag.STATE_END.equals(flag.state)) {
-            Log log = mLogMap.remove(logId);
+        if (StdFlag.STATE_END.equals(flag.state)) {
+            StdLog log = mLogMap.remove(logId);
             if (null != log) {
                 log.endFlag = flag;
             }
@@ -65,7 +65,7 @@ public class StdLogFactory<Param, Data extends IRenewalInfoAccessor & ILogStorag
     }
 
     @Override
-    public Collection<Log> getIncompleteLogs() {
+    public Collection<StdLog> getIncompleteLogs() {
         return null;
     }
 }

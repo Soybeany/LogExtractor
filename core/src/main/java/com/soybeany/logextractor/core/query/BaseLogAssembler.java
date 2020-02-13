@@ -8,7 +8,7 @@ import java.util.Collection;
  * 实现类需注意并发修改同一个Log的问题
  * <br>Created by Soybeany on 2020/2/4.
  */
-public abstract class BaseLogFactory<Param, Line, Flag, Log, Data> extends BaseModule<Param, Data> {
+public abstract class BaseLogAssembler<Param, Line, Flag, Log, Data> extends BaseModule<Param, Data> {
 
     public abstract Log addLine(Line line);
 

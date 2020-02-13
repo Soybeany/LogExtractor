@@ -18,7 +18,7 @@ public class ScanManager<Param extends IIndexIdProvider, Index, RLine, Line, Fla
 
     public static final String PURPOSE = "索引";
 
-    private BaseCreatorFactory<Param, Index, RLine, Line, Flag, Data> mCreatorFactory;
+    private BaseIndexCreatorFactory<Param, Index, RLine, Line, Flag, Data> mCreatorFactory;
 
     public ScanManager(IInstanceFactory<Index> indexFactory) {
         super(indexFactory);
@@ -26,7 +26,7 @@ public class ScanManager<Param extends IIndexIdProvider, Index, RLine, Line, Fla
 
     // ****************************************设置API****************************************
 
-    public void setCreatorFactory(BaseCreatorFactory<Param, Index, RLine, Line, Flag, Data> factory) {
+    public void setCreatorFactory(BaseIndexCreatorFactory<Param, Index, RLine, Line, Flag, Data> factory) {
         mCreatorFactory = factory;
     }
 
@@ -59,8 +59,8 @@ public class ScanManager<Param extends IIndexIdProvider, Index, RLine, Line, Fla
 
     private class Callback implements ICallback<RLine, Line, Flag> {
         private Index mIndex;
-        private List<? extends BaseIndexCreator<Param, Index, RLine, Line, Data>> mLineCreators = mCreatorFactory.getLineCreators();
-        private List<? extends BaseIndexCreator<Param, Index, RLine, Flag, Data>> mFlagCreators = mCreatorFactory.getFlagCreators();
+        private List<? extends BaseIndexCreator<Param, Index, RLine, Line, Data>> mLineCreators = mCreatorFactory.getLineIndexCreators();
+        private List<? extends BaseIndexCreator<Param, Index, RLine, Flag, Data>> mFlagCreators = mCreatorFactory.getFlagIndexCreators();
 
         Callback(Index index) {
             mIndex = index;

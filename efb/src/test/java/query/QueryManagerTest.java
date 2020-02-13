@@ -4,8 +4,8 @@ import com.google.gson.Gson;
 import com.soybeany.logextractor.core.center.MemStorageCenter;
 import com.soybeany.logextractor.core.query.BaseFilter;
 import com.soybeany.logextractor.core.query.BaseFilterFactory;
-import com.soybeany.logextractor.core.scan.BaseCreatorFactory;
 import com.soybeany.logextractor.core.scan.BaseIndexCreator;
+import com.soybeany.logextractor.core.scan.BaseIndexCreatorFactory;
 import com.soybeany.logextractor.efb.EFBRequestFlag;
 import com.soybeany.logextractor.sfile.SFileLogExtractor;
 import com.soybeany.logextractor.sfile.data.ISFileParam;
@@ -13,12 +13,12 @@ import com.soybeany.logextractor.sfile.data.SFileRawLine;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
 import com.soybeany.logextractor.std.StdLogExtractor;
 import com.soybeany.logextractor.std.data.*;
-import com.soybeany.logextractor.std.data.flag.Flag;
-import com.soybeany.logextractor.std.data.flag.FlagInfo;
-import com.soybeany.logextractor.std.log.StdLogFactory;
+import com.soybeany.logextractor.std.data.flag.StdFlag;
+import com.soybeany.logextractor.std.data.flag.StdFlagInfo;
+import com.soybeany.logextractor.std.log.StdLogAssembler;
 import com.soybeany.logextractor.std.parser.StdFlagParser;
 import com.soybeany.logextractor.std.parser.StdLineParser;
-import com.soybeany.logextractor.std.reporter.StdQueryReporter;
+import com.soybeany.logextractor.std.reporter.StdLogReporter;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -28,29 +28,29 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * todo limitCount为0时需调试，module增加优先级设置，默认的模块跨度以10为单位
+ * todo limitCount为0时需调试；module增加优先级设置，默认的模块跨度以10为单位；Report改名为logs
  * <br>Created by Soybeany on 2020/2/5.
  */
 class QueryManagerTest {
 
     @Test
     public void testLog() {
-        StdLogExtractor<Param, Index, QueryReport, Data> manager = new StdLogExtractor<Param, Index, QueryReport, Data>(Data.class, Index.class);
+        StdLogExtractor<Param, StdIndex, StdReport, Data> manager = new StdLogExtractor<Param, StdIndex, StdReport, Data>(Data.class, StdIndex.class);
         manager.setIdGenerator(new SFileLogExtractor.SimpleIdGenerator());
-        manager.setIndexStorageCenter(new MemStorageCenter<Index>());
+        manager.setIndexStorageCenter(new MemStorageCenter<StdIndex>());
         manager.setDataStorageCenter(new MemStorageCenter<Data>());
-        manager.setLoader(new StdFileLoader<Param, Index, Data>());
+        manager.setLoader(new StdFileLoader<Param, StdIndex, Data>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
-        manager.setLogFactory(new StdLogFactory<Param, Data>());
-        manager.setReporter(new StdQueryReporter<Param, Data>());
+        manager.setLogFactory(new StdLogAssembler<Param, Data>());
+        manager.setReporter(new StdLogReporter<Param, Data>());
         manager.setFilterFactory(new FilterFactory());
-        manager.setCreatorFactory(new CreatorFactory());
-        QueryReport report = manager.find(new Param());
+        manager.setCreatorFactory(new IndexCreatorFactory());
+        StdReport report = manager.find(new Param());
         System.out.println(new Gson().toJson(report));
         String reportId;
         if (null != (reportId = report.nextDataId)) {
-            QueryReport nextReport = manager.findById(reportId);
+            StdReport nextReport = manager.findById(reportId);
             System.out.println(new Gson().toJson(nextReport));
         }
     }
@@ -60,12 +60,12 @@ class QueryManagerTest {
     private static class LineParser extends StdLineParser<Param, Data> {
         private static Pattern PATTERN = Pattern.compile("(\\d+)-(\\d+)-(.*)");
 
-        public Line parse(String s) {
+        public StdLine parse(String s) {
             Matcher matcher = PATTERN.matcher(s);
             if (!matcher.find()) {
                 return null;
             }
-            Line line = new Line();
+            StdLine line = new StdLine();
             line.info.time = matcher.group(1);
             line.info.thread = matcher.group(2);
             line.content = matcher.group(3);
@@ -81,12 +81,12 @@ class QueryManagerTest {
         }
 
         @Override
-        protected FlagInfo toFlagInfo(Line line) {
+        protected StdFlagInfo toFlagInfo(StdLine line) {
             Matcher matcher = PATTERN.matcher(line.content);
             if (!matcher.find()) {
                 return null;
             }
-            FlagInfo flag = new FlagInfo(line.info);
+            StdFlagInfo flag = new StdFlagInfo(line.info);
             flag.state = matcher.group(1);
             flag.type = matcher.group(2);
             flag.detail = matcher.group(3);
@@ -103,7 +103,7 @@ class QueryManagerTest {
         }
 
         @Override
-        public Flag get(Matcher matcher, FlagInfo info) {
+        public StdFlag get(Matcher matcher, StdFlagInfo info) {
             EFBRequestFlag flag = new EFBRequestFlag(info);
             flag.userNo = matcher.group(1);
             flag.url = matcher.group(2);
@@ -112,35 +112,35 @@ class QueryManagerTest {
         }
     }
 
-    private static class FilterFactory extends BaseFilterFactory<Param, Log, Data> {
+    private static class FilterFactory extends BaseFilterFactory<Param, StdLog, Data> {
 
-        public List<BaseFilter<Param, Log, Data>> getFilters() {
+        public List<BaseFilter<Param, StdLog, Data>> getFilters() {
             return Collections.emptyList();
         }
 
     }
 
-    private static class Filter extends BaseFilter<Param, Log, Data> {
-        public boolean isFiltered(Log log) {
+    private static class Filter extends BaseFilter<Param, StdLog, Data> {
+        public boolean isFiltered(StdLog log) {
             return "100".equals(log.logId);
         }
 
     }
 
-    private static class CreatorFactory extends BaseCreatorFactory<Param, Index, SFileRawLine, Line, Flag, Data> {
+    private static class IndexCreatorFactory extends BaseIndexCreatorFactory<Param, StdIndex, SFileRawLine, StdLine, StdFlag, Data> {
 
-        public List<? extends BaseIndexCreator<Param, Index, SFileRawLine, Line, Data>> getLineCreators() {
+        public List<? extends BaseIndexCreator<Param, StdIndex, SFileRawLine, StdLine, Data>> getLineIndexCreators() {
             return Collections.singletonList(new LineIndexCreator());
         }
 
-        public List<? extends BaseIndexCreator<Param, Index, SFileRawLine, Flag, Data>> getFlagCreators() {
+        public List<? extends BaseIndexCreator<Param, StdIndex, SFileRawLine, StdFlag, Data>> getFlagIndexCreators() {
             return Collections.singletonList(new FlagIndexCreator());
         }
 
     }
 
-    private static class LineIndexCreator extends BaseIndexCreator<Param, Index, SFileRawLine, Line, Data> {
-        public void onCreateIndex(Index index, SFileRawLine rLine, Line line) {
+    private static class LineIndexCreator extends BaseIndexCreator<Param, StdIndex, SFileRawLine, StdLine, Data> {
+        public void onCreateIndex(StdIndex index, SFileRawLine rLine, StdLine line) {
 //            int time = Integer.parseInt(line.info.time);
 //            if (null == index.time[time]) {
 //                index.time[time] = SFileRange.from(rLine.getStartPointer());
@@ -149,8 +149,8 @@ class QueryManagerTest {
 
     }
 
-    private static class FlagIndexCreator extends BaseIndexCreator<Param, Index, SFileRawLine, Flag, Data> {
-        public void onCreateIndex(Index index, SFileRawLine rLine, Flag flag) {
+    private static class FlagIndexCreator extends BaseIndexCreator<Param, StdIndex, SFileRawLine, StdFlag, Data> {
+        public void onCreateIndex(StdIndex index, SFileRawLine rLine, StdFlag flag) {
 
         }
 
@@ -179,6 +179,6 @@ class QueryManagerTest {
         }
     }
 
-    public static class Data extends StdData<Param, Index, QueryReport> {
+    public static class Data extends StdData<Param, StdIndex, StdReport> {
     }
 }

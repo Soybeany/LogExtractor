@@ -5,19 +5,20 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class QueryReport extends ScanReport {
+public class StdReport {
 
     public int expectCount;
     public int actualCount;
     public String endReason;
 
-    public List<Log> logs;
+    public Long totalScan;
+    public Long newScan;
+    public Long startPointer;
+    public Long endPointer;
 
     public String lastDataId;
     public String curDataId;
     public String nextDataId;
 
-    public Long startPointer;
-    public Long endPointer;
-
+    public List<StdLog> logs;
 }

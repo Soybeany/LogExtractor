@@ -1,12 +1,12 @@
 package com.soybeany.logextractor.std.reporter;
 
-import com.soybeany.logextractor.core.query.BaseQueryReporter;
+import com.soybeany.logextractor.core.query.BaseLogReporter;
 import com.soybeany.logextractor.sfile.data.IRenewalInfoAccessor;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.std.data.ILoadDataAccessor;
 import com.soybeany.logextractor.std.data.IStdReporterParam;
-import com.soybeany.logextractor.std.data.Log;
-import com.soybeany.logextractor.std.data.QueryReport;
+import com.soybeany.logextractor.std.data.StdLog;
+import com.soybeany.logextractor.std.data.StdReport;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -14,18 +14,18 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdQueryReporter<Param extends IStdReporterParam, Data extends ILoadDataAccessor & IRenewalInfoAccessor> extends BaseQueryReporter<Param, Log, QueryReport, Data> {
+public class StdLogReporter<Param extends IStdReporterParam, Data extends ILoadDataAccessor & IRenewalInfoAccessor> extends BaseLogReporter<Param, StdLog, StdReport, Data> {
 
     private Data mData;
     private int mLogLimit;
-    private List<Log> mLogs;
+    private List<StdLog> mLogs;
 
     @Override
     public void onStart(Param param, Data data) throws Exception {
         super.onStart(param, data);
         mData = data;
         mLogLimit = param.getLogLimit();
-        mLogs = new LinkedList<Log>();
+        mLogs = new LinkedList<StdLog>();
     }
 
     @Override
@@ -34,13 +34,13 @@ public class StdQueryReporter<Param extends IStdReporterParam, Data extends ILoa
     }
 
     @Override
-    public void addLog(Log log) {
+    public void addLog(StdLog log) {
         mLogs.add(log);
     }
 
     @Override
-    public QueryReport getNewReport() {
-        QueryReport report = new QueryReport();
+    public StdReport getNewReport() {
+        StdReport report = new StdReport();
         report.logs = mLogs;
         report.expectCount = mLogLimit;
         report.actualCount = mLogs.size();

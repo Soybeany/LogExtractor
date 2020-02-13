@@ -4,7 +4,7 @@ import com.soybeany.logextractor.core.common.*;
 import com.soybeany.logextractor.core.query.*;
 import com.soybeany.logextractor.core.query.parser.BaseFlagParser;
 import com.soybeany.logextractor.core.query.parser.BaseLineParser;
-import com.soybeany.logextractor.core.scan.BaseCreatorFactory;
+import com.soybeany.logextractor.core.scan.BaseIndexCreatorFactory;
 import com.soybeany.logextractor.core.scan.ScanManager;
 import com.soybeany.logextractor.sfile.data.*;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
@@ -30,7 +30,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
     private BaseStorageCenter<Index> mIndexStorageCenter;
 
     private SingleFileLoader<Param, Index, Data> mLoader;
-    private BaseQueryReporter<Param, Log, Report, Data> mQueryReporter;
+    private BaseLogReporter<Param, Log, Report, Data> mQueryReporter;
 
     public SFileLogExtractor(IInstanceFactory<Data> dataFactory, IInstanceFactory<Index> indexFactory) {
         ToolUtils.checkNull(dataFactory, "DataInstanceFactory不能设置为null");
@@ -73,11 +73,11 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         mQueryManager.setFlagParser(parser);
     }
 
-    public void setCreatorFactory(BaseCreatorFactory<Param, Index, SFileRawLine, Line, Flag, Data> factory) {
+    public void setCreatorFactory(BaseIndexCreatorFactory<Param, Index, SFileRawLine, Line, Flag, Data> factory) {
         mScanManager.setCreatorFactory(factory);
     }
 
-    public void setLogFactory(BaseLogFactory<Param, Line, Flag, Log, Data> factory) {
+    public void setLogFactory(BaseLogAssembler<Param, Line, Flag, Log, Data> factory) {
         mQueryManager.setLogFactory(factory);
     }
 
@@ -85,7 +85,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         mQueryManager.setFilterFactory(factory);
     }
 
-    public void setReporter(BaseQueryReporter<Param, Log, Report, Data> reporter) {
+    public void setReporter(BaseLogReporter<Param, Log, Report, Data> reporter) {
         mQueryManager.setReporter(reporter);
         mQueryReporter = reporter;
     }
