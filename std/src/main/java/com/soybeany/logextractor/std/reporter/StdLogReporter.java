@@ -1,9 +1,9 @@
 package com.soybeany.logextractor.std.reporter;
 
 import com.soybeany.logextractor.core.query.BaseLogReporter;
-import com.soybeany.logextractor.sfile.data.IRenewalInfoAccessor;
+import com.soybeany.logextractor.sfile.data.IRenewalData;
 import com.soybeany.logextractor.sfile.data.SFileRange;
-import com.soybeany.logextractor.std.data.ILoadDataAccessor;
+import com.soybeany.logextractor.std.data.IStdFileLoaderData;
 import com.soybeany.logextractor.std.data.IStdReporterParam;
 import com.soybeany.logextractor.std.data.StdLog;
 import com.soybeany.logextractor.std.data.StdReport;
@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdLogReporter<Param extends IStdReporterParam, Data extends ILoadDataAccessor & IRenewalInfoAccessor> extends BaseLogReporter<Param, StdLog, StdReport, Data> {
+public class StdLogReporter<Param extends IStdReporterParam, Data extends IStdFileLoaderData & IRenewalData> extends BaseLogReporter<Param, StdLog, StdReport, Data> {
 
     private Data mData;
     private int mLogLimit;
@@ -44,7 +44,7 @@ public class StdLogReporter<Param extends IStdReporterParam, Data extends ILoadD
         report.logs = mLogs;
         report.expectCount = mLogLimit;
         report.actualCount = mLogs.size();
-        report.endReason = getEndReason(!needMoreLog(), !mData.canQueryMore());
+        report.endReason = getEndReason();
         report.lastDataId = mData.getLastDataId();
         report.curDataId = mData.getCurDataId();
         report.nextDataId = mData.getNextDataId();
@@ -61,14 +61,21 @@ public class StdLogReporter<Param extends IStdReporterParam, Data extends ILoadD
         return report;
     }
 
-    private String getEndReason(boolean hasEnoughLog, boolean isLoadToEnd) {
-        if (hasEnoughLog) {
+    private String getEndReason() {
+        if (!needMoreLog()) {
             return "已找到指定数量的结果";
         }
-        if (isLoadToEnd) {
+        long curPointer = mData.getCurEndPointer();
+        if (curPointer == mData.getFileSize()) {
             return "已到达文件的末尾";
         }
-        return "已到达限制区域的末尾";
+        if (curPointer == mData.getTargetEndPointer()) {
+            return "已到达限制区域的末尾";
+        }
+        if (mData.isReachLoadLimit()) {
+            return "已加载指定大小的文本";
+        }
+        return "未知原因";
     }
 
 }

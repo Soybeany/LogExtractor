@@ -1,11 +1,12 @@
 package com.soybeany.logextractor.std.data;
 
+import com.soybeany.logextractor.sfile.data.ISFileLoaderData;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 
 /**
  * <br>Created by Soybeany on 2020/2/9.
  */
-public interface ILoadDataAccessor {
+public interface IStdFileLoaderData extends ISFileLoaderData {
 
     SFileRange getScanRange();
 
@@ -15,7 +16,7 @@ public interface ILoadDataAccessor {
 
     void setQueryRange(SFileRange range);
 
-    Boolean canQueryMore();
+    boolean isReachLoadLimit();
 
-    void setCanQueryMore(boolean flag);
+    void setReachLoadLimit(boolean flag);
 }

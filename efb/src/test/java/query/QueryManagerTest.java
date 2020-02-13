@@ -8,8 +8,6 @@ import com.soybeany.logextractor.core.scan.BaseIndexCreator;
 import com.soybeany.logextractor.core.scan.BaseIndexCreatorFactory;
 import com.soybeany.logextractor.efb.EFBRequestFlag;
 import com.soybeany.logextractor.sfile.SFileLogExtractor;
-import com.soybeany.logextractor.sfile.data.ISFileParam;
-import com.soybeany.logextractor.sfile.data.SFileRawLine;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
 import com.soybeany.logextractor.std.StdLogExtractor;
 import com.soybeany.logextractor.std.data.*;
@@ -49,9 +47,9 @@ class QueryManagerTest {
         StdReport report = manager.find(new Param());
         System.out.println(new Gson().toJson(report));
         String reportId;
-        if (null != (reportId = report.nextDataId)) {
-            StdReport nextReport = manager.findById(reportId);
-            System.out.println(new Gson().toJson(nextReport));
+        while (null != (reportId = report.nextDataId)) {
+            report = manager.findById(reportId);
+            System.out.println(new Gson().toJson(report));
         }
     }
 
@@ -127,20 +125,20 @@ class QueryManagerTest {
 
     }
 
-    private static class IndexCreatorFactory extends BaseIndexCreatorFactory<Param, StdIndex, SFileRawLine, StdLine, StdFlag, Data> {
+    private static class IndexCreatorFactory extends BaseIndexCreatorFactory<Param, StdIndex, StdLine, StdFlag, Data> {
 
-        public List<? extends BaseIndexCreator<Param, StdIndex, SFileRawLine, StdLine, Data>> getLineIndexCreators() {
+        public List<? extends BaseIndexCreator<Param, StdIndex, StdLine, Data>> getLineIndexCreators() {
             return Collections.singletonList(new LineIndexCreator());
         }
 
-        public List<? extends BaseIndexCreator<Param, StdIndex, SFileRawLine, StdFlag, Data>> getFlagIndexCreators() {
+        public List<? extends BaseIndexCreator<Param, StdIndex, StdFlag, Data>> getFlagIndexCreators() {
             return Collections.singletonList(new FlagIndexCreator());
         }
 
     }
 
-    private static class LineIndexCreator extends BaseIndexCreator<Param, StdIndex, SFileRawLine, StdLine, Data> {
-        public void onCreateIndex(StdIndex index, SFileRawLine rLine, StdLine line) {
+    private static class LineIndexCreator extends BaseIndexCreator<Param, StdIndex, StdLine, Data> {
+        public void onCreateIndex(StdIndex index, StdLine line) {
 //            int time = Integer.parseInt(line.info.time);
 //            if (null == index.time[time]) {
 //                index.time[time] = SFileRange.from(rLine.getStartPointer());
@@ -149,8 +147,8 @@ class QueryManagerTest {
 
     }
 
-    private static class FlagIndexCreator extends BaseIndexCreator<Param, StdIndex, SFileRawLine, StdFlag, Data> {
-        public void onCreateIndex(StdIndex index, SFileRawLine rLine, StdFlag flag) {
+    private static class FlagIndexCreator extends BaseIndexCreator<Param, StdIndex, StdFlag, Data> {
+        public void onCreateIndex(StdIndex index, StdFlag flag) {
 
         }
 
@@ -158,7 +156,7 @@ class QueryManagerTest {
 
     // ****************************************模型****************************************
 
-    public static class Param implements ISFileParam, IStdReporterParam {
+    public static class Param implements IStdParam, IStdReporterParam {
 
         public File getFileToLoad() {
             return new File("D:\\source.txt");
@@ -176,6 +174,11 @@ class QueryManagerTest {
         @Override
         public String getIndexId() {
             return getFileToLoad().toString();
+        }
+
+        @Override
+        public long getLoadSizeLimit() {
+            return 1000;
         }
     }
 

@@ -14,7 +14,7 @@ import java.util.List;
  * 定义查询流程
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiableIndex, RLine, Line, Flag, Log, Report, Data extends BaseData<Index>> extends BaseManager<Param, Index, RLine, Line, Flag, Data> {
+public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiableIndex, Line, Flag, Log, Report, Data extends BaseData<Index>> extends BaseManager<Param, Index, Line, Flag, Data> {
 
     public static final String PURPOSE = "整理";
 
@@ -103,10 +103,10 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     // ****************************************内部类****************************************
 
-    private class Callback implements ICallback<RLine, Line, Flag> {
+    private class Callback implements ICallback<Line, Flag> {
         private List<BaseFilter<Param, Log, Data>> mFilters = mFilterFactory.getFilters();
 
-        public boolean onHandleLineAndFlag(RLine rLine, Line line, Flag flag) {
+        public boolean onHandleLineAndFlag(Line line, Flag flag) {
             Log log;
             // 若不是标签对象，则添加行
             if (null == flag) {

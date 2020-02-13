@@ -7,9 +7,9 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/6.
  */
-public abstract class BaseIndexCreatorFactory<Param, Index, RLine, Line, Flag, Data> extends BaseModule<Param, Data> {
+public abstract class BaseIndexCreatorFactory<Param, Index, Line, Flag, Data> extends BaseModule<Param, Data> {
 
-    public abstract List<? extends BaseIndexCreator<Param, Index, RLine, Line, Data>> getLineIndexCreators();
+    public abstract List<? extends BaseIndexCreator<Param, Index, Line, Data>> getLineIndexCreators();
 
-    public abstract List<? extends BaseIndexCreator<Param, Index, RLine, Flag, Data>> getFlagIndexCreators();
+    public abstract List<? extends BaseIndexCreator<Param, Index, Flag, Data>> getFlagIndexCreators();
 }

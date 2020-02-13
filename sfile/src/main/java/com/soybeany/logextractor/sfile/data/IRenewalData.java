@@ -3,7 +3,7 @@ package com.soybeany.logextractor.sfile.data;
 /**
  * <br>Created by Soybeany on 2020/2/9.
  */
-public interface IRenewalInfoAccessor {
+public interface IRenewalData {
 
     String getLastDataId();
 
@@ -16,9 +16,5 @@ public interface IRenewalInfoAccessor {
     String getNextDataId();
 
     void setNextDataId(String id);
-
-    long getPointer();
-
-    void setPointer(long pointer);
 
 }

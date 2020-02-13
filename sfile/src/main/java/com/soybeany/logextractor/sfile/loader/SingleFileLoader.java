@@ -1,9 +1,9 @@
 package com.soybeany.logextractor.sfile.loader;
 
 import com.soybeany.logextractor.core.common.BaseLoader;
+import com.soybeany.logextractor.sfile.data.ISFileLoaderData;
 import com.soybeany.logextractor.sfile.data.ISFileLoaderParam;
 import com.soybeany.logextractor.sfile.data.SFileRange;
-import com.soybeany.logextractor.sfile.data.SFileRawLine;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,14 +14,10 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/6.
  */
-public class SingleFileLoader<Param extends ISFileLoaderParam, Index, Data> extends BaseLoader<Param, SFileRawLine, Index, Data> {
+public class SingleFileLoader<Param extends ISFileLoaderParam, Index, Data extends ISFileLoaderData> extends BaseLoader<Param, Index, Data> {
 
     private final List<IRangeProvider<Param, Data, Index>> mProviders = new LinkedList<IRangeProvider<Param, Data, Index>>();
     private RandomAccessFile mRaf;
-
-    private long mStartPointer;
-    private long mTargetPointer;
-    private long mLastPointer;
 
     private Param mParam;
     private Data mData;
@@ -31,7 +27,6 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index, Data> exte
     @Override
     public void onStart(Param param, Data data) throws Exception {
         super.onStart(param, data);
-        mLastPointer = 0;
 
         mParam = param;
         mData = data;
@@ -43,33 +38,33 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index, Data> exte
 
     @Override
     public void onInit(String purpose, Index index) throws IOException {
+        long fileLength = mFile.length();
+        // 获得最大的开始位点
         SFileRange range = getRange(purpose, index);
-        mRaf.seek(range.start);
-        mStartPointer = mRaf.getFilePointer();
-        mTargetPointer = Math.min(mFile.length(), range.end);
+        long startPointer = mData.getStartPointer();
+        mRaf.seek(Math.max(startPointer, range.start));
+        // 获得最小的结束位点
+        long endPointer = mData.getTargetEndPointer();
+        endPointer = Math.min(endPointer, range.end);
+        mData.setTargetEndPointer(Math.min(endPointer, fileLength));
+        // 更新数据
+        startPointer = mRaf.getFilePointer();
+        mData.setStartPointer(startPointer);
+        mData.setCurEndPointer(startPointer);
+        mData.setFileSize(fileLength);
     }
 
     @Override
-    public SFileRawLine getNextRawLine() throws IOException {
-        SFileRawLine rLine = new SFileRawLine();
+    public String getNextLine() throws IOException {
         // 判断是否已到达目标位点
-        if (mTargetPointer <= mLastPointer) {
-            rLine.update(mLastPointer, mLastPointer, null);
-            return rLine;
+        long pointer = mData.getCurEndPointer();
+        if (mData.getTargetEndPointer() <= pointer) {
+            return null;
         }
-        // 读取下一行
-        String lineText = mRaf.readLine();
-        // 获得末尾位置
-        long curPointer = mRaf.getFilePointer();
-        // 转码
-        if (null != lineText) {
-            lineText = new String(lineText.getBytes("ISO-8859-1"), mCharset);
-        }
-        // 更新对象
-        rLine.update(mLastPointer, curPointer, lineText);
-        // 修改最后位置
-        mLastPointer = curPointer;
-        return rLine;
+        // 更新最后位置
+        String rawLine = mRaf.readLine();
+        mData.setCurEndPointer(mRaf.getFilePointer());
+        return new String(rawLine.getBytes("ISO-8859-1"), mCharset);
     }
 
     @Override
@@ -78,18 +73,12 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index, Data> exte
         if (null != mRaf) {
             mRaf.close();
         }
+        mRaf = null;
+        mFile = null;
     }
 
     public void addRangeProvider(IRangeProvider<Param, Data, Index> provider) {
         mProviders.add(provider);
-    }
-
-    public boolean isLoadToEnd() {
-        return mLastPointer == mFile.length();
-    }
-
-    public SFileRange getLoadedRange() {
-        return SFileRange.between(mStartPointer, mLastPointer);
     }
 
     // ****************************************内部方法****************************************

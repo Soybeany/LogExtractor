@@ -6,7 +6,10 @@ import com.soybeany.logextractor.core.query.parser.BaseFlagParser;
 import com.soybeany.logextractor.core.query.parser.BaseLineParser;
 import com.soybeany.logextractor.core.scan.BaseIndexCreatorFactory;
 import com.soybeany.logextractor.core.scan.ScanManager;
-import com.soybeany.logextractor.sfile.data.*;
+import com.soybeany.logextractor.sfile.data.ISFileIndex;
+import com.soybeany.logextractor.sfile.data.ISFileParam;
+import com.soybeany.logextractor.sfile.data.SFileData;
+import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
 
 import java.util.UUID;
@@ -21,8 +24,8 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
     private IIdGenerator mIdGenerator = new UUIDGenerator();
 
-    private ScanManager<Param, Index, SFileRawLine, Line, Flag, Data> mScanManager;
-    private QueryManager<Param, Index, SFileRawLine, Line, Flag, Log, Report, Data> mQueryManager;
+    private ScanManager<Param, Index, Line, Flag, Data> mScanManager;
+    private QueryManager<Param, Index, Line, Flag, Log, Report, Data> mQueryManager;
 
     private IInstanceFactory<Data> mDataInstanceFactory;
 
@@ -34,8 +37,8 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
     public SFileLogExtractor(IInstanceFactory<Data> dataFactory, IInstanceFactory<Index> indexFactory) {
         ToolUtils.checkNull(dataFactory, "DataInstanceFactory不能设置为null");
-        mScanManager = new ScanManager<Param, Index, SFileRawLine, Line, Flag, Data>(indexFactory);
-        mQueryManager = new QueryManager<Param, Index, SFileRawLine, Line, Flag, Log, Report, Data>(indexFactory);
+        mScanManager = new ScanManager<Param, Index, Line, Flag, Data>(indexFactory);
+        mQueryManager = new QueryManager<Param, Index, Line, Flag, Log, Report, Data>(indexFactory);
         mDataInstanceFactory = dataFactory;
 
         mQueryManager.addModule(new RenewModule());
@@ -63,7 +66,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         mQueryManager.setLoader(loader);
     }
 
-    public void setLineParser(BaseLineParser<Param, SFileRawLine, Line, Data> parser) {
+    public void setLineParser(BaseLineParser<Param, Line, Data> parser) {
         mScanManager.setLineParser(parser);
         mQueryManager.setLineParser(parser);
     }
@@ -73,7 +76,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         mQueryManager.setFlagParser(parser);
     }
 
-    public void setCreatorFactory(BaseIndexCreatorFactory<Param, Index, SFileRawLine, Line, Flag, Data> factory) {
+    public void setCreatorFactory(BaseIndexCreatorFactory<Param, Index, Line, Flag, Data> factory) {
         mScanManager.setCreatorFactory(factory);
     }
 
@@ -107,7 +110,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         data.param = param;
         // 更新索引
         mScanManager.createIndexes(param, data);
-        mIndexStorageCenter.load(param.getIndexId()).setPointer(mLoader.getLoadedRange().end);
+        mIndexStorageCenter.load(param.getIndexId()).setPointer(data.getCurEndPointer());
         // 执行查找
         Report report = mQueryManager.find(param, data);
         // 记录报告
@@ -164,12 +167,8 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
     private class RangeProvider implements SingleFileLoader.IRangeProvider<Param, Data, Index> {
         @Override
         public SFileRange getLoadRange(Param param, String purpose, Index index, Data data) {
-            // 断点继续查询
-            if (QueryManager.PURPOSE.equals(purpose)) {
-                return SFileRange.between(data.getPointer(), index.getPointer());
-            }
             // 断点继续索引
-            else if (ScanManager.PURPOSE.equals(purpose)) {
+            if (ScanManager.PURPOSE.equals(purpose)) {
                 return SFileRange.from(index.getPointer());
             }
             return null;
@@ -187,12 +186,14 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
         @Override
         public void onReadyToGenerateReport() {
-            if (mQueryReporter.needMoreLog() || mLoader.isLoadToEnd()) {
+            long curPointer = mData.getCurEndPointer();
+            // 若范围/文件已加载完，则没有下一数据
+            if (curPointer == mData.getTargetEndPointer() || curPointer == mData.getFileSize()) {
                 return;
             }
+            // 准备下一数据
             Data nextData = getData(mIdGenerator.getNewId());
             nextData.beNextDataOf(mData);
-            nextData.setPointer(mLoader.getLoadedRange().end);
         }
     }
 }

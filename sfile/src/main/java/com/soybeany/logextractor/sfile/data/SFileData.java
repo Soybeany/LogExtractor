@@ -7,7 +7,7 @@ import com.soybeany.logextractor.core.data.BaseData;
  * 子类必须重写{@link #beNextDataOf}方法，设置新增的字段
  * <br>Created by Soybeany on 2020/2/10.
  */
-public abstract class SFileData<Param, Index, Report> extends BaseData<Index> implements IRenewalInfoAccessor {
+public abstract class SFileData<Param, Index, Report> extends BaseData<Index> implements ISFileLoaderData, IRenewalData {
 
     /**
      * 用于汇总查询结果的报告
@@ -22,7 +22,12 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     private String mLastId;
     private String mCurId;
     private String mNextId;
-    private long mPointer;
+
+    private long mFileSize;
+
+    private long mStartPointer;
+    private long mCurEndPointer;
+    private long mTargetEndPointer = Long.MAX_VALUE;
 
     @Override
     public String getLastDataId() {
@@ -55,13 +60,43 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     }
 
     @Override
-    public long getPointer() {
-        return mPointer;
+    public long getFileSize() {
+        return mFileSize;
     }
 
     @Override
-    public void setPointer(long pointer) {
-        mPointer = pointer;
+    public void setFileSize(long size) {
+        mFileSize = size;
+    }
+
+    @Override
+    public long getStartPointer() {
+        return mStartPointer;
+    }
+
+    @Override
+    public void setStartPointer(long pointer) {
+        mStartPointer = pointer;
+    }
+
+    @Override
+    public long getCurEndPointer() {
+        return mCurEndPointer;
+    }
+
+    @Override
+    public void setCurEndPointer(long pointer) {
+        mCurEndPointer = pointer;
+    }
+
+    @Override
+    public long getTargetEndPointer() {
+        return mTargetEndPointer;
+    }
+
+    @Override
+    public void setTargetEndPointer(long pointer) {
+        mTargetEndPointer = pointer;
     }
 
     public void beNextDataOf(SFileData<Param, Index, Report> data) {
@@ -73,5 +108,7 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
         setLastDataId(data.getCurDataId());
         // 设置参数
         param = data.param;
+        // 设置位点
+        setStartPointer(data.getCurEndPointer());
     }
 }
