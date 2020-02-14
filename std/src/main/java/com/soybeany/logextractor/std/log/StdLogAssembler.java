@@ -66,6 +66,6 @@ public class StdLogAssembler<Param, Data extends IRenewalData & IStdLogAssembler
 
     @Override
     public Collection<StdLog> getIncompleteLogs() {
-        return null;
+        return mLogMap.values();
     }
 }

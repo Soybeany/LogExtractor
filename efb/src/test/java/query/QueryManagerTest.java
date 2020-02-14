@@ -2,8 +2,8 @@ package query;
 
 import com.google.gson.Gson;
 import com.soybeany.logextractor.core.center.MemStorageCenter;
-import com.soybeany.logextractor.core.query.BaseFilter;
-import com.soybeany.logextractor.core.query.BaseFilterFactory;
+import com.soybeany.logextractor.core.query.BaseLogFilter;
+import com.soybeany.logextractor.core.query.BaseLogFilterFactory;
 import com.soybeany.logextractor.efb.EFBRequestFlag;
 import com.soybeany.logextractor.sfile.SFileLogExtractor;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
@@ -24,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * todo 处理未组装的日志
  * <br>Created by Soybeany on 2020/2/5.
  */
 class QueryManagerTest {
@@ -40,7 +39,7 @@ class QueryManagerTest {
         manager.setFlagParser(new FlagParser());
         manager.setLogAssembler(new StdLogAssembler<Param, Data>());
         manager.setReporter(new StdLogReporter<Param, Data>());
-//        manager.setFilterFactory(new FilterFactory());
+//        manager.setFilterFactory(new LogFilterFactory());
         StdReport report = manager.find(new Param());
         System.out.println(new Gson().toJson(report));
         String reportId;
@@ -107,11 +106,21 @@ class QueryManagerTest {
         }
     }
 
-    private static class FilterFactory extends BaseFilterFactory<Param, StdLog, Data> {
-        public List<? extends BaseFilter<StdLog>> getFilters() {
-            return Collections.singletonList(new BaseFilter<StdLog>() {
+    private static class LogFilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
+        public List<? extends BaseLogFilter<StdLog>> getLogFilters() {
+            return Collections.singletonList(new BaseLogFilter<StdLog>() {
                 public boolean isFiltered(StdLog log) {
                     return "100".equals(log.logId);
+                }
+            });
+        }
+
+        @Override
+        public List<? extends BaseLogFilter<StdLog>> getIncompleteLogFilters() {
+            return Collections.singletonList(new BaseLogFilter<StdLog>() {
+                @Override
+                public boolean isFiltered(StdLog stdLog) {
+                    return false;
                 }
             });
         }

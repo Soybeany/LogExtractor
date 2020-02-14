@@ -79,7 +79,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         mQueryManager.setLogAssembler(assembler);
     }
 
-    public void setFilterFactory(BaseFilterFactory<Param, Log, Data> factory) {
+    public void setFilterFactory(BaseLogFilterFactory<Param, Log, Data> factory) {
         mQueryManager.setFilterFactory(factory);
     }
 

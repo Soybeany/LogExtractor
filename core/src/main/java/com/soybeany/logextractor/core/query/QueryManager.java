@@ -8,6 +8,7 @@ import com.soybeany.logextractor.core.data.ICopiableIndex;
 import com.soybeany.logextractor.core.data.IIndexIdProvider;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -21,7 +22,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
     private IInstanceFactory<Index> mIndexFactory;
 
     private BaseLogAssembler<Param, Line, Flag, Log, Data> mLogAssembler;
-    private BaseFilterFactory<Param, Log, Data> mFilterFactory;
+    private BaseLogFilterFactory<Param, Log, Data> mFilterFactory;
     private BaseLogReporter<Param, Log, Report, Data> mReporter;
 
     public QueryManager(IInstanceFactory<Index> indexFactory) {
@@ -35,7 +36,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
         mLogAssembler = assembler;
     }
 
-    public void setFilterFactory(BaseFilterFactory<Param, Log, Data> factory) {
+    public void setFilterFactory(BaseLogFilterFactory<Param, Log, Data> factory) {
         mFilterFactory = factory;
     }
 
@@ -57,7 +58,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
             Callback callback = new Callback();
             while (mReporter.needMoreLog()) {
                 if (extractLogs(callback)) {
-                    // todo 范围到达后，需将未完成的日志也交给后续模块处理
+                    addIncompleteLogsToReport();
                     break;
                 }
             }
@@ -76,9 +77,9 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     // ****************************************内部方法****************************************
 
-    private BaseFilterFactory<Param, Log, Data> getNonNullFilterFactory() {
+    private BaseLogFilterFactory<Param, Log, Data> getNonNullFilterFactory() {
         if (null == mFilterFactory) {
-            mFilterFactory = new DefaultFilterFactory();
+            mFilterFactory = new DefaultLogFilterFactory();
         }
         return mFilterFactory;
     }
@@ -93,13 +94,24 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
         return index;
     }
 
+    private void addIncompleteLogsToReport() {
+        Collection<Log> logs = mLogAssembler.getIncompleteLogs();
+        List<? extends BaseLogFilter<Log>> filters = mFilterFactory.getIncompleteLogFilters();
+        if (null == logs || null == filters || filters.isEmpty()) {
+            return;
+        }
+        for (Log log : logs) {
+            tryToAddLogToReporter(filters, log);
+        }
+    }
+
     /**
      * @return 是否添加成功
      */
-    private boolean tryToAddLogToReporter(List<? extends BaseFilter<Log>> filters, Log log) {
+    private boolean tryToAddLogToReporter(List<? extends BaseLogFilter<Log>> filters, Log log) {
         // 过滤日志对象
         if (null != filters) {
-            for (BaseFilter<Log> filter : filters) {
+            for (BaseLogFilter<Log> filter : filters) {
                 if (filter.isFiltered(log)) {
                     return false;
                 }
@@ -113,7 +125,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
     // ****************************************内部类****************************************
 
     private class Callback implements ICallback<Line, Flag> {
-        private List<? extends BaseFilter<Log>> mFilters = mFilterFactory.getFilters();
+        private List<? extends BaseLogFilter<Log>> mFilters = mFilterFactory.getLogFilters();
 
         public boolean onHandleLineAndFlag(Line line, Flag flag) {
             Log log;
@@ -134,9 +146,14 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
         }
     }
 
-    private class DefaultFilterFactory extends BaseFilterFactory<Param, Log, Data> {
+    private class DefaultLogFilterFactory extends BaseLogFilterFactory<Param, Log, Data> {
         @Override
-        public List<BaseFilter<Log>> getFilters() {
+        public List<BaseLogFilter<Log>> getLogFilters() {
+            return null;
+        }
+
+        @Override
+        public List<? extends BaseLogFilter<Log>> getIncompleteLogFilters() {
             return null;
         }
     }
