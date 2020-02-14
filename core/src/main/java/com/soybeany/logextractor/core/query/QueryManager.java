@@ -31,7 +31,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     // ****************************************设置API****************************************
 
-    public void setLogFactory(BaseLogAssembler<Param, Line, Flag, Log, Data> assembler) {
+    public void setLogAssembler(BaseLogAssembler<Param, Line, Flag, Log, Data> assembler) {
         mLogAssembler = assembler;
     }
 
@@ -50,7 +50,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
      */
     public Report find(Param param, Data data) {
         // 检查模块
-        setAndCheckModules(Arrays.asList(mLogAssembler, mFilterFactory, mReporter));
+        setAndCheckModules(Arrays.asList(mLogAssembler, getNonNullFilterFactory(), mReporter));
         // 加载
         try {
             start(PURPOSE, param, data, getIndexFromData(param, data));
@@ -76,6 +76,13 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     // ****************************************内部方法****************************************
 
+    private BaseFilterFactory<Param, Log, Data> getNonNullFilterFactory() {
+        if (null == mFilterFactory) {
+            mFilterFactory = new DefaultFilterFactory();
+        }
+        return mFilterFactory;
+    }
+
     private Index getIndexFromData(Param param, Data data) {
         Index index = data.index;
         if (null == index) {
@@ -89,11 +96,13 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
     /**
      * @return 是否添加成功
      */
-    private boolean tryToAddLogToReporter(List<BaseFilter<Param, Log, Data>> filters, Log log) {
+    private boolean tryToAddLogToReporter(List<? extends BaseFilter<Param, Log, Data>> filters, Log log) {
         // 过滤日志对象
-        for (BaseFilter<Param, Log, Data> filter : filters) {
-            if (filter.isFiltered(log)) {
-                return false;
+        if (null != filters) {
+            for (BaseFilter<Param, Log, Data> filter : filters) {
+                if (filter.isFiltered(log)) {
+                    return false;
+                }
             }
         }
         // 有效，则添加到报告中
@@ -104,7 +113,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
     // ****************************************内部类****************************************
 
     private class Callback implements ICallback<Line, Flag> {
-        private List<BaseFilter<Param, Log, Data>> mFilters = mFilterFactory.getFilters();
+        private List<? extends BaseFilter<Param, Log, Data>> mFilters = mFilterFactory.getFilters();
 
         public boolean onHandleLineAndFlag(Line line, Flag flag) {
             Log log;
@@ -122,6 +131,13 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
             }
             // 尝试将日志添加到
             return tryToAddLogToReporter(mFilters, log);
+        }
+    }
+
+    private class DefaultFilterFactory extends BaseFilterFactory<Param, Log, Data> {
+        @Override
+        public List<BaseFilter<Param, Log, Data>> getFilters() {
+            return null;
         }
     }
 }

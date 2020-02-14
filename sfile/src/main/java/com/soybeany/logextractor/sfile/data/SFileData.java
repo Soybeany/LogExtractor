@@ -25,6 +25,7 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     private String mReason;
 
     private long mFileSize;
+    private SFileRange mLoadRange;
 
     private long mStartPointer;
     private long mCurEndPointer;
@@ -78,6 +79,16 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     @Override
     public void setFileSize(long size) {
         mFileSize = size;
+    }
+
+    @Override
+    public SFileRange getLoadRange() {
+        return mLoadRange;
+    }
+
+    @Override
+    public void setLoadRanges(SFileRange range) {
+        mLoadRange = range;
     }
 
     @Override

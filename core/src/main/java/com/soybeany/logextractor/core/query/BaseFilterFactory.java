@@ -9,6 +9,6 @@ import java.util.List;
  */
 public abstract class BaseFilterFactory<Param, Log, Data> extends BaseModule<Param, Data> {
 
-    public abstract List<BaseFilter<Param, Log, Data>> getFilters();
+    public abstract List<? extends BaseFilter<Param, Log, Data>> getFilters();
 
 }

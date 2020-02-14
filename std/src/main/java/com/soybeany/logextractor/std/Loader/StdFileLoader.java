@@ -2,6 +2,7 @@ package com.soybeany.logextractor.std.Loader;
 
 import com.soybeany.logextractor.core.query.IQueryListener;
 import com.soybeany.logextractor.core.scan.IScanListener;
+import com.soybeany.logextractor.sfile.data.ISFileIndex;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
 import com.soybeany.logextractor.std.data.IStdFileLoaderData;
@@ -12,7 +13,7 @@ import java.io.IOException;
 /**
  * <br>Created by Soybeany on 2020/2/9.
  */
-public class StdFileLoader<Param extends IStdFileLoaderParam, Index, Data extends IStdFileLoaderData> extends SingleFileLoader<Param, Index, Data> implements IScanListener, IQueryListener {
+public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFileIndex, Data extends IStdFileLoaderData> extends SingleFileLoader<Param, Index, Data> implements IScanListener, IQueryListener {
 
     private Data mData;
     private long mLoadSizeLimit;

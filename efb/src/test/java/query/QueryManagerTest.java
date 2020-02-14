@@ -4,8 +4,6 @@ import com.google.gson.Gson;
 import com.soybeany.logextractor.core.center.MemStorageCenter;
 import com.soybeany.logextractor.core.query.BaseFilter;
 import com.soybeany.logextractor.core.query.BaseFilterFactory;
-import com.soybeany.logextractor.core.scan.BaseIndexCreator;
-import com.soybeany.logextractor.core.scan.BaseIndexCreatorFactory;
 import com.soybeany.logextractor.efb.EFBRequestFlag;
 import com.soybeany.logextractor.sfile.SFileLogExtractor;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
@@ -40,10 +38,9 @@ class QueryManagerTest {
         manager.setLoader(new StdFileLoader<Param, StdIndex, Data>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
-        manager.setLogFactory(new StdLogAssembler<Param, Data>());
+        manager.setLogAssembler(new StdLogAssembler<Param, Data>());
         manager.setReporter(new StdLogReporter<Param, Data>());
-        manager.setFilterFactory(new FilterFactory());
-        manager.setCreatorFactory(new IndexCreatorFactory());
+//        manager.setFilterFactory(new FilterFactory());
         StdReport report = manager.find(new Param());
         System.out.println(new Gson().toJson(report));
         String reportId;
@@ -111,47 +108,13 @@ class QueryManagerTest {
     }
 
     private static class FilterFactory extends BaseFilterFactory<Param, StdLog, Data> {
-
-        public List<BaseFilter<Param, StdLog, Data>> getFilters() {
-            return Collections.emptyList();
+        public List<? extends BaseFilter<Param, StdLog, Data>> getFilters() {
+            return Collections.singletonList(new BaseFilter<Param, StdLog, Data>() {
+                public boolean isFiltered(StdLog log) {
+                    return "100".equals(log.logId);
+                }
+            });
         }
-
-    }
-
-    private static class Filter extends BaseFilter<Param, StdLog, Data> {
-        public boolean isFiltered(StdLog log) {
-            return "100".equals(log.logId);
-        }
-
-    }
-
-    private static class IndexCreatorFactory extends BaseIndexCreatorFactory<Param, StdIndex, StdLine, StdFlag, Data> {
-
-        public List<? extends BaseIndexCreator<Param, StdIndex, StdLine, Data>> getLineIndexCreators() {
-            return Collections.singletonList(new LineIndexCreator());
-        }
-
-        public List<? extends BaseIndexCreator<Param, StdIndex, StdFlag, Data>> getFlagIndexCreators() {
-            return Collections.singletonList(new FlagIndexCreator());
-        }
-
-    }
-
-    private static class LineIndexCreator extends BaseIndexCreator<Param, StdIndex, StdLine, Data> {
-        public void onCreateIndex(StdIndex index, StdLine line) {
-//            int time = Integer.parseInt(line.info.time);
-//            if (null == index.time[time]) {
-//                index.time[time] = SFileRange.from(rLine.getStartPointer());
-//            }
-        }
-
-    }
-
-    private static class FlagIndexCreator extends BaseIndexCreator<Param, StdIndex, StdFlag, Data> {
-        public void onCreateIndex(StdIndex index, StdFlag flag) {
-
-        }
-
     }
 
     // ****************************************模型****************************************
@@ -178,7 +141,7 @@ class QueryManagerTest {
 
         @Override
         public long getLoadSizeLimit() {
-            return 120;
+            return 1000;
         }
     }
 

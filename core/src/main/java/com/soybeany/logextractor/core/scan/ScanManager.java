@@ -34,7 +34,7 @@ public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data
 
     public void createIndexes(Param param, Data data) {
         // 检查模块
-        setAndCheckModules(Collections.<BaseModule<Param, Data>>singletonList(mCreatorFactory));
+        setAndCheckModules(Collections.<BaseModule<Param, Data>>singletonList(getNonNullIndexCreatorFactory()));
         // 加载
         Index index = null;
         String lockId = hashCode() + "";
@@ -55,6 +55,15 @@ public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data
         }
     }
 
+    // ****************************************内部方法****************************************
+
+    private BaseIndexCreatorFactory<Param, Index, Line, Flag, Data> getNonNullIndexCreatorFactory() {
+        if (null == mCreatorFactory) {
+            mCreatorFactory = new DefaultIndexCreatorFactory();
+        }
+        return mCreatorFactory;
+    }
+
     // ****************************************内部类****************************************
 
     private class Callback implements ICallback<Line, Flag> {
@@ -68,16 +77,30 @@ public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data
 
         public boolean onHandleLineAndFlag(Line line, Flag flag) {
             // 建立Line索引
-            for (BaseIndexCreator<Param, Index, Line, Data> creator : mLineCreators) {
-                creator.onCreateIndex(mIndex, line);
+            if (null != mLineCreators) {
+                for (BaseIndexCreator<Param, Index, Line, Data> creator : mLineCreators) {
+                    creator.onCreateIndex(mIndex, line);
+                }
             }
             // 若为标签，建立标签索引
-            if (null != flag) {
+            if (null != flag && null != mFlagCreators) {
                 for (BaseIndexCreator<Param, Index, Flag, Data> creator : mFlagCreators) {
                     creator.onCreateIndex(mIndex, flag);
                 }
             }
             return false;
+        }
+    }
+
+    private class DefaultIndexCreatorFactory extends BaseIndexCreatorFactory<Param, Index, Line, Flag, Data> {
+        @Override
+        public List<? extends BaseIndexCreator<Param, Index, Line, Data>> getLineIndexCreators() {
+            return null;
+        }
+
+        @Override
+        public List<? extends BaseIndexCreator<Param, Index, Flag, Data>> getFlagIndexCreators() {
+            return null;
         }
     }
 }

@@ -20,4 +20,8 @@ public interface ISFileLoaderData {
     long getFileSize();
 
     void setFileSize(long size);
+
+    SFileRange getLoadRange();
+
+    void setLoadRanges(SFileRange range);
 }
