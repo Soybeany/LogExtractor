@@ -9,7 +9,7 @@ public class StdReport {
 
     public int expectCount;
     public int actualCount;
-    public String endReason;
+    public String noNextDataReason;
 
     public Long totalScan;
     public Long newScan;

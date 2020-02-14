@@ -6,10 +6,7 @@ import com.soybeany.logextractor.core.query.parser.BaseFlagParser;
 import com.soybeany.logextractor.core.query.parser.BaseLineParser;
 import com.soybeany.logextractor.core.scan.BaseIndexCreatorFactory;
 import com.soybeany.logextractor.core.scan.ScanManager;
-import com.soybeany.logextractor.sfile.data.ISFileIndex;
-import com.soybeany.logextractor.sfile.data.ISFileParam;
-import com.soybeany.logextractor.sfile.data.SFileData;
-import com.soybeany.logextractor.sfile.data.SFileRange;
+import com.soybeany.logextractor.sfile.data.*;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
 
 import java.util.UUID;
@@ -187,8 +184,19 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         @Override
         public void onReadyToGenerateReport() {
             long curPointer = mData.getCurEndPointer();
-            // 若范围/文件已加载完，则没有下一数据
-            if (curPointer == mData.getTargetEndPointer() || curPointer == mData.getFileSize()) {
+            // 文件已加载完
+            if (curPointer == mData.getFileSize()) {
+                mData.setNoNextDataReason(IRenewalData.REASON_EOF);
+                return;
+            }
+            // 范围已加载完
+            if (curPointer == mData.getTargetEndPointer()) {
+                mData.setNoNextDataReason(IRenewalData.REASON_EOR);
+                return;
+            }
+            // 没有加载数据
+            if (curPointer == mData.getStartPointer()) {
+                mData.setNoNextDataReason(IRenewalData.REASON_NOT_LOAD);
                 return;
             }
             // 准备下一数据

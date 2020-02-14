@@ -11,6 +11,8 @@ import com.soybeany.logextractor.std.data.StdReport;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.soybeany.logextractor.sfile.data.IRenewalData.*;
+
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
@@ -44,7 +46,7 @@ public class StdLogReporter<Param extends IStdReporterParam, Data extends IStdFi
         report.logs = mLogs;
         report.expectCount = mLogLimit;
         report.actualCount = mLogs.size();
-        report.endReason = getEndReason();
+        report.noNextDataReason = getNoNextDataReason();
         report.lastDataId = mData.getLastDataId();
         report.curDataId = mData.getCurDataId();
         report.nextDataId = mData.getNextDataId();
@@ -61,21 +63,28 @@ public class StdLogReporter<Param extends IStdReporterParam, Data extends IStdFi
         return report;
     }
 
-    private String getEndReason() {
+    private String getNoNextDataReason() {
+        String reason = mData.getNoNextDataReason();
+        // 已有确定的原因
+        if (null != reason) {
+            if (REASON_EOR.equals(reason)) {
+                return "已到达限制区域的末尾";
+            }
+            if (REASON_EOF.equals(reason)) {
+                return "已到达文件的末尾";
+            }
+            if (REASON_NOT_LOAD.equals(reason)) {
+                return "没有加载数据";
+            }
+            return "未指明的原因";
+        }
         if (!needMoreLog()) {
             return "已找到指定数量的结果";
-        }
-        long curPointer = mData.getCurEndPointer();
-        if (curPointer == mData.getFileSize()) {
-            return "已到达文件的末尾";
-        }
-        if (curPointer == mData.getTargetEndPointer()) {
-            return "已到达限制区域的末尾";
         }
         if (mData.isReachLoadLimit()) {
             return "已加载指定大小的文本";
         }
-        return "未知原因";
+        return "未预料的原因";
     }
 
 }

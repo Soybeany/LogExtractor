@@ -26,7 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * todo limitCount为0时需调试；module增加优先级设置，默认的模块跨度以10为单位；Report改名为logs
+ * todo module增加优先级设置，默认的模块跨度以10为单位；将IndexCreator(创建者)与使用者放到同一个接口中；处理未组装的日志
  * <br>Created by Soybeany on 2020/2/5.
  */
 class QueryManagerTest {
@@ -168,7 +168,7 @@ class QueryManagerTest {
 
         @Override
         public int getLogLimit() {
-            return 1;
+            return 2;
         }
 
         @Override
@@ -178,7 +178,7 @@ class QueryManagerTest {
 
         @Override
         public long getLoadSizeLimit() {
-            return 1000;
+            return 120;
         }
     }
 

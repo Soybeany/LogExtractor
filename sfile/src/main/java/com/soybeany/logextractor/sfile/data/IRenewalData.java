@@ -5,6 +5,10 @@ package com.soybeany.logextractor.sfile.data;
  */
 public interface IRenewalData {
 
+    String REASON_EOF = "file";
+    String REASON_EOR = "range";
+    String REASON_NOT_LOAD = "notLoad";
+
     String getLastDataId();
 
     void setLastDataId(String id);
@@ -17,4 +21,7 @@ public interface IRenewalData {
 
     void setNextDataId(String id);
 
+    String getNoNextDataReason();
+
+    void setNoNextDataReason(String reason);
 }

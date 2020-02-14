@@ -1,6 +1,5 @@
 package com.soybeany.logextractor.std.data;
 
-import com.soybeany.logextractor.sfile.data.IRenewalData;
 import com.soybeany.logextractor.sfile.data.SFileData;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 
@@ -11,7 +10,7 @@ import java.util.Map;
  * 子类必须重写{@link #beNextDataOf}方法，设置新增的字段
  * <br>Created by Soybeany on 2020/2/10.
  */
-public abstract class StdData<Param, Index, Report> extends SFileData<Param, Index, Report> implements IStdLogAssemblerData, IRenewalData, IStdFileLoaderData {
+public abstract class StdData<Param, Index, Report> extends SFileData<Param, Index, Report> implements IStdLogAssemblerData, IStdFileLoaderData {
 
     private SFileRange mScanRange;
     private SFileRange mQueryRange;

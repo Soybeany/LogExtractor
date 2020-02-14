@@ -22,6 +22,7 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     private String mLastId;
     private String mCurId;
     private String mNextId;
+    private String mReason;
 
     private long mFileSize;
 
@@ -57,6 +58,16 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     @Override
     public void setNextDataId(String id) {
         mNextId = id;
+    }
+
+    @Override
+    public String getNoNextDataReason() {
+        return mReason;
+    }
+
+    @Override
+    public void setNoNextDataReason(String reason) {
+        mReason = reason;
     }
 
     @Override
