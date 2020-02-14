@@ -9,6 +9,13 @@ import java.util.List;
  */
 public abstract class BaseFilterFactory<Param, Log, Data> extends BaseModule<Param, Data> {
 
-    public abstract List<? extends BaseFilter<Param, Log, Data>> getFilters();
+    public static final int PROCESS_NUM = 50;
+
+    @Override
+    public int getProcessNum() {
+        return PROCESS_NUM;
+    }
+
+    public abstract List<? extends BaseFilter<Log>> getFilters();
 
 }

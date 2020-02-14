@@ -11,6 +11,13 @@ import java.util.List;
  */
 public abstract class SFileIndexHandlerFactory<Param extends ISFileParam, Index extends ISFileIndex, Line, Flag, Data> extends BaseModule<Param, Data> {
 
+    public static final int PROCESS_NUM = 70;
+
+    @Override
+    public int getProcessNum() {
+        return PROCESS_NUM;
+    }
+
     public abstract List<ISFileIndexHandler<Param, Index, Line, Flag>> getHandlerList();
 
 }

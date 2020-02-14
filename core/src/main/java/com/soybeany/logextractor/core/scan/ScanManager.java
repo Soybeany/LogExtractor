@@ -68,8 +68,8 @@ public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data
 
     private class Callback implements ICallback<Line, Flag> {
         private Index mIndex;
-        private List<? extends BaseIndexCreator<Param, Index, Line, Data>> mLineCreators = mCreatorFactory.getLineIndexCreators();
-        private List<? extends BaseIndexCreator<Param, Index, Flag, Data>> mFlagCreators = mCreatorFactory.getFlagIndexCreators();
+        private List<? extends BaseIndexCreator<Index, Line>> mLineCreators = mCreatorFactory.getLineIndexCreators();
+        private List<? extends BaseIndexCreator<Index, Flag>> mFlagCreators = mCreatorFactory.getFlagIndexCreators();
 
         Callback(Index index) {
             mIndex = index;
@@ -78,13 +78,13 @@ public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data
         public boolean onHandleLineAndFlag(Line line, Flag flag) {
             // 建立Line索引
             if (null != mLineCreators) {
-                for (BaseIndexCreator<Param, Index, Line, Data> creator : mLineCreators) {
+                for (BaseIndexCreator<Index, Line> creator : mLineCreators) {
                     creator.onCreateIndex(mIndex, line);
                 }
             }
             // 若为标签，建立标签索引
             if (null != flag && null != mFlagCreators) {
-                for (BaseIndexCreator<Param, Index, Flag, Data> creator : mFlagCreators) {
+                for (BaseIndexCreator<Index, Flag> creator : mFlagCreators) {
                     creator.onCreateIndex(mIndex, flag);
                 }
             }
@@ -94,12 +94,12 @@ public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data
 
     private class DefaultIndexCreatorFactory extends BaseIndexCreatorFactory<Param, Index, Line, Flag, Data> {
         @Override
-        public List<? extends BaseIndexCreator<Param, Index, Line, Data>> getLineIndexCreators() {
+        public List<? extends BaseIndexCreator<Index, Line>> getLineIndexCreators() {
             return null;
         }
 
         @Override
-        public List<? extends BaseIndexCreator<Param, Index, Flag, Data>> getFlagIndexCreators() {
+        public List<? extends BaseIndexCreator<Index, Flag>> getFlagIndexCreators() {
             return null;
         }
     }

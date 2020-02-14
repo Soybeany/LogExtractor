@@ -168,7 +168,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
     // ****************************************成员内部类****************************************
 
     private interface ICallback<Param extends ISFileParam, Index extends ISFileIndex, Line, Flag, Data, Info> {
-        BaseIndexCreator<Param, Index, Info, Data> getNewIndexCreator(ISFileIndexHandler<Param, Index, Line, Flag> handler);
+        BaseIndexCreator<Index, Info> getNewIndexCreator(ISFileIndexHandler<Param, Index, Line, Flag> handler);
     }
 
     private class Module extends BaseModule<Param, Data> implements IQueryListener {
@@ -179,6 +179,11 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
             super.onStart(param, data);
             mData = data;
             setupLoadRange(param);
+        }
+
+        @Override
+        public int getProcessNum() {
+            return SingleFileLoader.PROCESS_NUM + 1;
         }
 
         @Override
@@ -235,11 +240,11 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
     private class IndexCreatorFactoryAdapter extends BaseIndexCreatorFactory<Param, Index, Line, Flag, Data> {
         @Override
-        public List<? extends BaseIndexCreator<Param, Index, Line, Data>> getLineIndexCreators() {
+        public List<? extends BaseIndexCreator<Index, Line>> getLineIndexCreators() {
             return getCreators(new ICallback<Param, Index, Line, Flag, Data, Line>() {
                 @Override
-                public BaseIndexCreator<Param, Index, Line, Data> getNewIndexCreator(final ISFileIndexHandler<Param, Index, Line, Flag> handler) {
-                    return new BaseIndexCreator<Param, Index, Line, Data>() {
+                public BaseIndexCreator<Index, Line> getNewIndexCreator(final ISFileIndexHandler<Param, Index, Line, Flag> handler) {
+                    return new BaseIndexCreator<Index, Line>() {
                         @Override
                         public void onCreateIndex(Index index, Line line) {
                             handler.onCreateIndexWithLine(index, line);
@@ -250,11 +255,11 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         }
 
         @Override
-        public List<? extends BaseIndexCreator<Param, Index, Flag, Data>> getFlagIndexCreators() {
+        public List<? extends BaseIndexCreator<Index, Flag>> getFlagIndexCreators() {
             return getCreators(new ICallback<Param, Index, Line, Flag, Data, Flag>() {
                 @Override
-                public BaseIndexCreator<Param, Index, Flag, Data> getNewIndexCreator(final ISFileIndexHandler<Param, Index, Line, Flag> handler) {
-                    return new BaseIndexCreator<Param, Index, Flag, Data>() {
+                public BaseIndexCreator<Index, Flag> getNewIndexCreator(final ISFileIndexHandler<Param, Index, Line, Flag> handler) {
+                    return new BaseIndexCreator<Index, Flag>() {
                         @Override
                         public void onCreateIndex(Index index, Flag flag) {
                             handler.onCreateIndexWithFlag(index, flag);
@@ -264,12 +269,12 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
             });
         }
 
-        private <Info> List<BaseIndexCreator<Param, Index, Info, Data>> getCreators(ICallback<Param, Index, Line, Flag, Data, Info> callback) {
+        private <Info> List<BaseIndexCreator<Index, Info>> getCreators(ICallback<Param, Index, Line, Flag, Data, Info> callback) {
             List<ISFileIndexHandler<Param, Index, Line, Flag>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
             if (null == handlers) {
                 return null;
             }
-            List<BaseIndexCreator<Param, Index, Info, Data>> result = new LinkedList<BaseIndexCreator<Param, Index, Info, Data>>();
+            List<BaseIndexCreator<Index, Info>> result = new LinkedList<BaseIndexCreator<Index, Info>>();
             for (final ISFileIndexHandler<Param, Index, Line, Flag> handler : handlers) {
                 result.add(callback.getNewIndexCreator(handler));
             }

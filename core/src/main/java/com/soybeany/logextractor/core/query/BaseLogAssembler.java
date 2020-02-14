@@ -10,6 +10,13 @@ import java.util.Collection;
  */
 public abstract class BaseLogAssembler<Param, Line, Flag, Log, Data> extends BaseModule<Param, Data> {
 
+    public static final int PROCESS_NUM = 40;
+
+    @Override
+    public int getProcessNum() {
+        return PROCESS_NUM;
+    }
+
     public abstract Log addLine(Line line);
 
     public abstract Log addFlag(Flag flag);

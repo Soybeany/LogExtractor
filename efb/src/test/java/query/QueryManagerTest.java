@@ -24,7 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * todo module增加优先级设置，默认的模块跨度以10为单位；将IndexCreator(创建者)与使用者放到同一个接口中；处理未组装的日志
+ * todo 处理未组装的日志
  * <br>Created by Soybeany on 2020/2/5.
  */
 class QueryManagerTest {
@@ -108,8 +108,8 @@ class QueryManagerTest {
     }
 
     private static class FilterFactory extends BaseFilterFactory<Param, StdLog, Data> {
-        public List<? extends BaseFilter<Param, StdLog, Data>> getFilters() {
-            return Collections.singletonList(new BaseFilter<Param, StdLog, Data>() {
+        public List<? extends BaseFilter<StdLog>> getFilters() {
+            return Collections.singletonList(new BaseFilter<StdLog>() {
                 public boolean isFiltered(StdLog log) {
                     return "100".equals(log.logId);
                 }

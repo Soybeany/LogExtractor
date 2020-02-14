@@ -5,10 +5,7 @@ import com.soybeany.logextractor.core.query.parser.BaseFlagParser;
 import com.soybeany.logextractor.core.query.parser.BaseLineParser;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * 优先使用抽象模块来拓展功能，若模块已是具体实现类，才在数据上使用接口
@@ -71,6 +68,7 @@ public abstract class BaseManager<Param, Index, Line, Flag, Data> {
         // 设置额外检测的模块
         mModules.addAll(Arrays.asList(mLoader, mLineParser, mFlagParser));
         mModules.addAll(mExModules);
+        Collections.sort(mModules);
         // 检测模块
         for (int i = 0; i < mModules.size(); i++) {
             BaseModule<Param, Data> module = mModules.get(i);

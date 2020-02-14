@@ -96,10 +96,10 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
     /**
      * @return 是否添加成功
      */
-    private boolean tryToAddLogToReporter(List<? extends BaseFilter<Param, Log, Data>> filters, Log log) {
+    private boolean tryToAddLogToReporter(List<? extends BaseFilter<Log>> filters, Log log) {
         // 过滤日志对象
         if (null != filters) {
-            for (BaseFilter<Param, Log, Data> filter : filters) {
+            for (BaseFilter<Log> filter : filters) {
                 if (filter.isFiltered(log)) {
                     return false;
                 }
@@ -113,7 +113,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
     // ****************************************内部类****************************************
 
     private class Callback implements ICallback<Line, Flag> {
-        private List<? extends BaseFilter<Param, Log, Data>> mFilters = mFilterFactory.getFilters();
+        private List<? extends BaseFilter<Log>> mFilters = mFilterFactory.getFilters();
 
         public boolean onHandleLineAndFlag(Line line, Flag flag) {
             Log log;
@@ -136,7 +136,7 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     private class DefaultFilterFactory extends BaseFilterFactory<Param, Log, Data> {
         @Override
-        public List<BaseFilter<Param, Log, Data>> getFilters() {
+        public List<BaseFilter<Log>> getFilters() {
             return null;
         }
     }

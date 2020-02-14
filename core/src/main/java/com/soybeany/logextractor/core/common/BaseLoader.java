@@ -7,6 +7,13 @@ import java.io.IOException;
  */
 public abstract class BaseLoader<Param, Index, Data> extends BaseModule<Param, Data> {
 
+    public static final int PROCESS_NUM = 10;
+
+    @Override
+    public int getProcessNum() {
+        return PROCESS_NUM;
+    }
+
     public abstract void onInit(String purpose, Index index) throws IOException;
 
     /**

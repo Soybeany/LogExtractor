@@ -9,7 +9,14 @@ import java.util.List;
  */
 public abstract class BaseIndexCreatorFactory<Param, Index, Line, Flag, Data> extends BaseModule<Param, Data> {
 
-    public abstract List<? extends BaseIndexCreator<Param, Index, Line, Data>> getLineIndexCreators();
+    public static final int PROCESS_NUM = 40;
 
-    public abstract List<? extends BaseIndexCreator<Param, Index, Flag, Data>> getFlagIndexCreators();
+    @Override
+    public int getProcessNum() {
+        return PROCESS_NUM;
+    }
+
+    public abstract List<? extends BaseIndexCreator<Index, Line>> getLineIndexCreators();
+
+    public abstract List<? extends BaseIndexCreator<Index, Flag>> getFlagIndexCreators();
 }
