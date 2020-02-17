@@ -28,4 +28,12 @@ public class SFileRange {
         this.start = start;
         this.end = end;
     }
+
+    public void updateStart(long start) {
+        this.start = start;
+    }
+
+    public void updateEnd(long end) {
+        this.end = end;
+    }
 }

@@ -1,7 +1,5 @@
 package com.soybeany.logextractor.std.Loader;
 
-import com.soybeany.logextractor.core.query.IQueryListener;
-import com.soybeany.logextractor.core.scan.IScanListener;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
@@ -9,11 +7,12 @@ import com.soybeany.logextractor.std.data.IStdFileLoaderData;
 import com.soybeany.logextractor.std.data.IStdFileLoaderParam;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/9.
  */
-public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFileIndex, Data extends IStdFileLoaderData> extends SingleFileLoader<Param, Index, Data> implements IScanListener, IQueryListener {
+public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFileIndex, Data extends IStdFileLoaderData> extends SingleFileLoader<Param, Index, Data> {
 
     private Data mData;
     private long mLoadSizeLimit;
@@ -43,15 +42,19 @@ public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFi
 
     @Override
     public void onScanFinish() {
-        mData.setScanRange(getLoadRange());
+        super.onScanFinish();
+        mData.setScanRange(SFileRange.between(mData.getStartPointer(), mData.getCurEndPointer()));
     }
 
     @Override
     public void onReadyToGenerateReport() {
-        mData.setQueryRange(getLoadRange());
+        super.onReadyToGenerateReport();
+        List<SFileRange> loadRanges = mData.getActLoadRanges();
+        long loadedPointer = 0;
+        for (SFileRange range : loadRanges) {
+            loadedPointer += range.end - range.start;
+        }
+        mData.setQueryLoad(loadedPointer);
     }
 
-    private SFileRange getLoadRange() {
-        return SFileRange.between(mData.getStartPointer(), mData.getCurEndPointer());
-    }
 }

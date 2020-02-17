@@ -3,6 +3,8 @@ package com.soybeany.logextractor.sfile.data;
 import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.data.BaseData;
 
+import java.util.List;
+
 /**
  * 子类必须重写{@link #beNextDataOf}方法，设置新增的字段
  * <br>Created by Soybeany on 2020/2/10.
@@ -25,7 +27,8 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     private String mReason;
 
     private long mFileSize;
-    private SFileRange mLoadRange;
+    private List<SFileRange> mExpectLoadRange;
+    private List<SFileRange> mActLoadRange;
 
     private long mStartPointer;
     private long mCurEndPointer;
@@ -82,13 +85,23 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     }
 
     @Override
-    public SFileRange getLoadRange() {
-        return mLoadRange;
+    public List<SFileRange> getExceptLoadRanges() {
+        return mExpectLoadRange;
     }
 
     @Override
-    public void setLoadRanges(SFileRange range) {
-        mLoadRange = range;
+    public void setExceptLoadRanges(List<SFileRange> ranges) {
+        mExpectLoadRange = ranges;
+    }
+
+    @Override
+    public List<SFileRange> getActLoadRanges() {
+        return mActLoadRange;
+    }
+
+    @Override
+    public void setActLoadRanges(List<SFileRange> range) {
+        mActLoadRange = range;
     }
 
     @Override
@@ -132,5 +145,7 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
         param = data.param;
         // 设置位点
         setStartPointer(data.getCurEndPointer());
+        // 设置期望范围
+        setExceptLoadRanges(data.getExceptLoadRanges());
     }
 }

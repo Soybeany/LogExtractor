@@ -13,7 +13,7 @@ import java.util.Map;
 public abstract class StdData<Param, Index, Report> extends SFileData<Param, Index, Report> implements IStdLogAssemblerData, IStdFileLoaderData {
 
     private SFileRange mScanRange;
-    private SFileRange mQueryRange;
+    private Long mQueryLoad;
     private boolean mIsReachLoadLimit;
     private Map<String, StdLog> mLogStorage = new LinkedHashMap<String, StdLog>();
 
@@ -28,13 +28,13 @@ public abstract class StdData<Param, Index, Report> extends SFileData<Param, Ind
     }
 
     @Override
-    public SFileRange getQueryRange() {
-        return mQueryRange;
+    public Long getQueryLoad() {
+        return mQueryLoad;
     }
 
     @Override
-    public void setQueryRange(SFileRange range) {
-        mQueryRange = range;
+    public void setQueryLoad(Long length) {
+        mQueryLoad = length;
     }
 
     @Override

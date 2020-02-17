@@ -12,9 +12,9 @@ public interface IStdFileLoaderData extends ISFileLoaderData {
 
     void setScanRange(SFileRange range);
 
-    SFileRange getQueryRange();
+    Long getQueryLoad();
 
-    void setQueryRange(SFileRange range);
+    void setQueryLoad(Long length);
 
     boolean isReachLoadLimit();
 

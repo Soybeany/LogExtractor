@@ -11,7 +11,9 @@ import com.soybeany.logextractor.sfile.data.*;
 import com.soybeany.logextractor.sfile.handler.ISFileIndexHandler;
 import com.soybeany.logextractor.sfile.handler.SFileIndexHandlerFactory;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
+import com.soybeany.logextractor.sfile.merge.RangeMerger;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -210,31 +212,23 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         }
 
         private void setupLoadRange(Param param) {
-            // 检查是否已设置范围
-            if (null != mData.getLoadRange()) {
+            // 若已设置范围，则不再重复设置
+            if (null != mData.getExceptLoadRanges()) {
                 return;
             }
-            // 创建范围
-            SFileRange range = SFileRange.max();
-            mData.setLoadRanges(range);
-            // 修改范围
             List<ISFileIndexHandler<Param, Index, Line, Flag>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
+            // 没有指定范围则设置最广的范围
             if (null == handlers) {
+                mData.setExceptLoadRanges(Collections.singletonList(SFileRange.max()));
                 return;
             }
+            // 设置指定的范围
             Index index = mIndexStorageCenter.load(param.getIndexId());
+            RangeMerger merger = new RangeMerger();
             for (ISFileIndexHandler<Param, Index, Line, Flag> handler : handlers) {
-                SFileRange tmpRange = handler.getRangeStrict(param, index);
-                if (null == tmpRange) {
-                    continue;
-                }
-                if (range.start < tmpRange.start) {
-                    range.start = tmpRange.start;
-                }
-                if (range.end > tmpRange.end) {
-                    range.end = tmpRange.end;
-                }
+                merger.merge(handler.getRangeStrict(param, index));
             }
+            mData.setExceptLoadRanges(merger.getResult().getIntersectionRanges());
         }
     }
 

@@ -24,6 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * todo 在data中放入锁
  * <br>Created by Soybeany on 2020/2/5.
  */
 class QueryManagerTest {

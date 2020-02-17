@@ -50,11 +50,7 @@ public class StdLogReporter<Param extends IStdReporterParam, Data extends IStdFi
         report.lastDataId = mData.getLastDataId();
         report.curDataId = mData.getCurDataId();
         report.nextDataId = mData.getNextDataId();
-        SFileRange queryRange = mData.getQueryRange();
-        if (null != queryRange) {
-            report.startPointer = queryRange.start;
-            report.endPointer = queryRange.end;
-        }
+        report.queryLoad = mData.getQueryLoad();
         SFileRange scanRange = mData.getScanRange();
         if (null != scanRange) {
             report.totalScan = scanRange.end;

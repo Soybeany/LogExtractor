@@ -1,26 +1,37 @@
 package com.soybeany.logextractor.sfile.loader;
 
 import com.soybeany.logextractor.core.common.BaseLoader;
-import com.soybeany.logextractor.core.query.QueryManager;
+import com.soybeany.logextractor.core.query.IQueryListener;
 import com.soybeany.logextractor.core.scan.IScanListener;
 import com.soybeany.logextractor.core.scan.ScanManager;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
 import com.soybeany.logextractor.sfile.data.ISFileLoaderData;
 import com.soybeany.logextractor.sfile.data.ISFileLoaderParam;
 import com.soybeany.logextractor.sfile.data.SFileRange;
+import com.soybeany.logextractor.sfile.merge.RangeMerger;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/6.
  */
-public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISFileIndex, Data extends ISFileLoaderData> extends BaseLoader<Param, Index, Data> implements IScanListener {
+public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISFileIndex, Data extends ISFileLoaderData> extends BaseLoader<Param, Index, Data> implements IScanListener, IQueryListener {
 
     private RandomAccessFile mRaf;
     private File mFile;
+    private long mFileLength;
     private String mCharset;
+
+    private List<SFileRange> mLoadRanges;
+    private int mRangeIndex;
+
+    private long mTargetEndPointer;
+    private long mRangeEndPointer;
 
     private Data mData;
     private Index mIndex;
@@ -30,37 +41,39 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
         super.onStart(param, data);
         mData = data;
         mFile = param.getFileToLoad();
+        mFileLength = mFile.length();
         mCharset = param.getFileCharset();
         mRaf = new BufferedRandomAccessFile(mFile, "r");
+        mLoadRanges = new ArrayList<SFileRange>();
+        mRangeIndex = 0;
     }
 
     @Override
     public void onInit(String purpose, Index index) throws IOException {
         mIndex = index;
-        long fileLength = mFile.length();
+        setupLoadRanges(purpose, index);
+        mRangeEndPointer = mLoadRanges.get(0).end;
         // 获得最大的开始位点
-        SFileRange range = getMaxRange(purpose, index);
-        long startPointer = mData.getStartPointer();
-        mRaf.seek(Math.max(startPointer, range.start));
+        mRaf.seek(mLoadRanges.get(0).start);
         // 获得最小的结束位点
-        long endPointer = mData.getTargetEndPointer();
-        endPointer = Math.min(endPointer, range.end);
-        mData.setTargetEndPointer(Math.min(endPointer, fileLength));
+        mTargetEndPointer = mLoadRanges.get(mLoadRanges.size() - 1).end;
         // 更新数据
-        startPointer = mRaf.getFilePointer();
+        long startPointer = mRaf.getFilePointer();
         mData.setStartPointer(startPointer);
         mData.setCurEndPointer(startPointer);
-        mData.setFileSize(fileLength);
+        mData.setTargetEndPointer(mTargetEndPointer);
+        mData.setFileSize(mFileLength);
     }
 
     @Override
     public String getNextLine() throws IOException {
         // 判断是否已到达目标位点
         long pointer = mData.getCurEndPointer();
-        if (mData.getTargetEndPointer() <= pointer) {
+        if (mTargetEndPointer <= pointer) {
             return null;
         }
-        // todo 移动pointer
+        // 移动pointer
+        switchPointerIfNeed(pointer);
         // 读取一行新内容
         String rawLine = mRaf.readLine();
         // 更新当前结束位置
@@ -69,30 +82,74 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
     }
 
     @Override
-    public void onFinish() throws Exception {
-        super.onFinish();
-        if (null != mRaf) {
-            mRaf.close();
-        }
-        mRaf = null;
-        mFile = null;
-    }
-
-    @Override
     public void onScanFinish() {
         mIndex.setPointer(mData.getCurEndPointer());
     }
 
+    @Override
+    public void onReadyToGenerateReport() {
+        int fomIndex = mRangeIndex + 1;
+        int toIndex = mLoadRanges.size();
+        if (toIndex > fomIndex) {
+            mLoadRanges.subList(fomIndex, toIndex).clear();
+        }
+        mLoadRanges.get(mRangeIndex).updateEnd(mData.getCurEndPointer());
+    }
+
+    @Override
+    public void onFinish() throws Exception {
+        super.onFinish();
+        RandomAccessFile raf = mRaf;
+        mRaf = null;
+        mFile = null;
+        mFileLength = 0;
+        mLoadRanges = null;
+        if (null != raf) {
+            raf.close();
+        }
+    }
+
     // ****************************************内部方法****************************************
 
-    private SFileRange getMaxRange(String purpose, Index index) {
+    private void setupLoadRanges(String purpose, Index index) {
+        RangeMerger merger = new RangeMerger();
+        // 建立索引
         if (ScanManager.PURPOSE.equals(purpose)) {
-            return SFileRange.from(index.getPointer());
+            mergeSingleRange(merger, SFileRange.from(index.getPointer()));
         }
-        SFileRange loadRange;
-        if (QueryManager.PURPOSE.equals(purpose) && null != (loadRange = mData.getLoadRange())) {
-            return loadRange;
+        // 其它操作
+        else {
+            List<SFileRange> ranges;
+            // 有限定的查询范围
+            if (null != (ranges = mData.getExceptLoadRanges())) {
+                merger.merge(ranges);
+            }
+            // 没有限定的查询范围
+            else {
+                mergeSingleRange(merger, SFileRange.max());
+            }
         }
-        return SFileRange.max();
+        // 结合数据中设置的范围
+        mergeSingleRange(merger, SFileRange.between(mData.getStartPointer(), mData.getTargetEndPointer()));
+        // 结合文件长度
+        mergeSingleRange(merger, SFileRange.to(mFileLength));
+        // 得到实际需要加载的范围
+        mLoadRanges.addAll(merger.getResult().getIntersectionRanges());
+        mData.setActLoadRanges(mLoadRanges);
+    }
+
+    private void mergeSingleRange(RangeMerger merger, SFileRange range) {
+        merger.merge(Collections.singletonList(range));
+    }
+
+    private void switchPointerIfNeed(long pointer) throws IOException {
+        // 当前范围未读完则继续
+        if (mRangeEndPointer > pointer) {
+            return;
+        }
+        // 切换到下一范围
+        SFileRange nextRange = mLoadRanges.get(++mRangeIndex);
+        mRaf.seek(nextRange.start);
+        mRangeEndPointer = nextRange.end;
     }
 }

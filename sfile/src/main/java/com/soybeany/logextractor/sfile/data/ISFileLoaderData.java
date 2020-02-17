@@ -1,5 +1,7 @@
 package com.soybeany.logextractor.sfile.data;
 
+import java.util.List;
+
 /**
  * <br>Created by Soybeany on 2020/2/13.
  */
@@ -21,7 +23,11 @@ public interface ISFileLoaderData {
 
     void setFileSize(long size);
 
-    SFileRange getLoadRange();
+    List<SFileRange> getExceptLoadRanges();
 
-    void setLoadRanges(SFileRange range);
+    void setExceptLoadRanges(List<SFileRange> result);
+
+    List<SFileRange> getActLoadRanges();
+
+    void setActLoadRanges(List<SFileRange> range);
 }

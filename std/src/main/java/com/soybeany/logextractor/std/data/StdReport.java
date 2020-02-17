@@ -13,8 +13,7 @@ public class StdReport {
 
     public Long totalScan;
     public Long newScan;
-    public Long startPointer;
-    public Long endPointer;
+    public Long queryLoad;
 
     public String lastDataId;
     public String curDataId;
