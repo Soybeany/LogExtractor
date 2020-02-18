@@ -9,6 +9,4 @@ public interface IStdLogAssemblerData {
 
     Map<String, StdLog> getLogStorage();
 
-    void setLogStorage(Map<String, StdLog> storage);
-
 }

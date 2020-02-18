@@ -1,4 +1,4 @@
-package com.soybeany.logextractor.efb;
+package com.soybeany.logextractor.efb.data.flag;
 
 import com.soybeany.logextractor.std.data.flag.StdFlag;
 import com.soybeany.logextractor.std.data.flag.StdRequestFlag;

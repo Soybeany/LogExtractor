@@ -1,6 +1,5 @@
 package com.soybeany.logextractor.std.data;
 
-import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.data.ICopiableIndex;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
 
@@ -24,7 +23,7 @@ public class StdIndex implements ISFileIndex {
     @Override
     public void copy(ICopiableIndex index) {
         if (!(index instanceof StdIndex)) {
-            throw new BusinessException("类型不匹配，无法拷贝");
+            return;
         }
         StdIndex otherIndex = (StdIndex) index;
         mPointer = otherIndex.mPointer;

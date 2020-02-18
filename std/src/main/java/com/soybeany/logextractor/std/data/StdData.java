@@ -53,11 +53,6 @@ public abstract class StdData<Param, Index, Report> extends SFileData<Param, Ind
     }
 
     @Override
-    public void setLogStorage(Map<String, StdLog> storage) {
-        mLogStorage = storage;
-    }
-
-    @Override
     public void beNextDataOf(SFileData<Param, Index, Report> data) {
         super.beNextDataOf(data);
         if (!(data instanceof StdData)) {

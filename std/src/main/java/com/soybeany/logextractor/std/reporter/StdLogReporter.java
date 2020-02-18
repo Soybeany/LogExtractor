@@ -1,5 +1,6 @@
 package com.soybeany.logextractor.std.reporter;
 
+import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.query.BaseLogReporter;
 import com.soybeany.logextractor.sfile.data.IRenewalData;
 import com.soybeany.logextractor.sfile.data.SFileRange;
@@ -16,11 +17,17 @@ import static com.soybeany.logextractor.sfile.data.IRenewalData.*;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdLogReporter<Param extends IStdReporterParam, Data extends IStdFileLoaderData & IRenewalData> extends BaseLogReporter<Param, StdLog, StdReport, Data> {
+public class StdLogReporter<Param extends IStdReporterParam, Report extends StdReport, Data extends IStdFileLoaderData & IRenewalData> extends BaseLogReporter<Param, StdLog, Report, Data> {
+
+    private Class<Report> mReportClazz;
 
     private Data mData;
     private int mLogLimit;
     private List<StdLog> mLogs;
+
+    public StdLogReporter(Class<Report> clazz) {
+        mReportClazz = clazz;
+    }
 
     @Override
     public void onStart(Param param, Data data) throws Exception {
@@ -41,8 +48,13 @@ public class StdLogReporter<Param extends IStdReporterParam, Data extends IStdFi
     }
 
     @Override
-    public StdReport getNewReport() {
-        StdReport report = new StdReport();
+    public Report getNewReport() {
+        Report report;
+        try {
+            report = mReportClazz.newInstance();
+        } catch (Exception e) {
+            throw new BusinessException("无法创建report实例:" + e.getMessage());
+        }
         report.logs = mLogs;
         report.expectCount = mLogLimit;
         report.actualCount = mLogs.size();

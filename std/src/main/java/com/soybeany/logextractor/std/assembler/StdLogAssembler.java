@@ -1,10 +1,11 @@
-package com.soybeany.logextractor.std.log;
+package com.soybeany.logextractor.std.assembler;
 
 import com.soybeany.logextractor.core.center.SimpleUniqueLock;
 import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.query.BaseLogAssembler;
 import com.soybeany.logextractor.sfile.data.IRenewalData;
 import com.soybeany.logextractor.std.data.IStdLogAssemblerData;
+import com.soybeany.logextractor.std.data.IStdLogAssemblerParam;
 import com.soybeany.logextractor.std.data.StdLine;
 import com.soybeany.logextractor.std.data.StdLog;
 import com.soybeany.logextractor.std.data.flag.StdFlag;
@@ -15,14 +16,16 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdLogAssembler<Param, Data extends IRenewalData & IStdLogAssemblerData> extends BaseLogAssembler<Param, StdLine, StdFlag, StdLog, Data> {
+public class StdLogAssembler<Param extends IStdLogAssemblerParam, Data extends IRenewalData & IStdLogAssemblerData> extends BaseLogAssembler<Param, StdLine, StdFlag, StdLog, Data> {
 
     private Map<String, StdLog> mLogMap;
+    private int mMaxLineOfLogWithoutStartFlag;
 
     @Override
     public void onStart(Param param, Data data) throws Exception {
         super.onStart(param, data);
         mLogMap = data.getLogStorage();
+        mMaxLineOfLogWithoutStartFlag = param.getMaxLineOfLogWithoutStartFlag();
         SimpleUniqueLock.tryAttain(hashCode() + "", mLogMap, "日志正在生成，请稍后");
     }
 
@@ -40,6 +43,10 @@ public class StdLogAssembler<Param, Data extends IRenewalData & IStdLogAssembler
             log = new StdLog(logId);
         }
         log.lines.add(line);
+        // 若是无开始标识的日志，且日志行数已超出设定，则弹出
+        if (null == log.startFlag && log.lines.size() >= mMaxLineOfLogWithoutStartFlag) {
+            return mLogMap.remove(logId);
+        }
         return null;
     }
 
