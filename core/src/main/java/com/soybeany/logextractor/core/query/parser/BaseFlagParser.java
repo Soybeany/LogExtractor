@@ -5,11 +5,11 @@ package com.soybeany.logextractor.core.query.parser;
  */
 public abstract class BaseFlagParser<Param, Line, Flag, Data> extends BaseParser<Param, Line, Flag, Data> {
 
-    public static final int PROCESS_NUM = 30;
+    public static final int CALLBACK_SEQ = 30;
 
     @Override
-    public int getProcessNum() {
-        return PROCESS_NUM;
+    public int getCallbackSeq() {
+        return CALLBACK_SEQ;
     }
 
 }

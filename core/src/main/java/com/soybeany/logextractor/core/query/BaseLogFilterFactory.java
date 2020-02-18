@@ -9,11 +9,11 @@ import java.util.List;
  */
 public abstract class BaseLogFilterFactory<Param, Log, Data> extends BaseModule<Param, Data> {
 
-    public static final int PROCESS_NUM = 50;
+    public static final int CALLBACK_SEQ = 50;
 
     @Override
-    public int getProcessNum() {
-        return PROCESS_NUM;
+    public int getCallbackSeq() {
+        return CALLBACK_SEQ;
     }
 
     public abstract List<? extends BaseLogFilter<Log>> getLogFilters();

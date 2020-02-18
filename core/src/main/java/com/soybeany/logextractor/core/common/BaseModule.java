@@ -8,7 +8,7 @@ public abstract class BaseModule<Param, Data> implements Comparable<BaseModule<P
 
     @Override
     public int compareTo(BaseModule<Param, Data> o) {
-        return getProcessNum() - o.getProcessNum();
+        return getCallbackSeq() - o.getCallbackSeq();
     }
 
     /**
@@ -25,5 +25,8 @@ public abstract class BaseModule<Param, Data> implements Comparable<BaseModule<P
         // 子类按需实现
     }
 
-    public abstract int getProcessNum();
+    /**
+     * 回调执行时的顺序，小的会先被回调
+     */
+    public abstract int getCallbackSeq();
 }

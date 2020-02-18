@@ -5,11 +5,11 @@ package com.soybeany.logextractor.core.query.parser;
  */
 public abstract class BaseLineParser<Param, Line, Data> extends BaseParser<Param, String, Line, Data> {
 
-    public static final int PROCESS_NUM = 20;
+    public static final int CALLBACK_SEQ = 20;
 
     @Override
-    public int getProcessNum() {
-        return PROCESS_NUM;
+    public int getCallbackSeq() {
+        return CALLBACK_SEQ;
     }
 
     public abstract void addContent(Line line, String content);

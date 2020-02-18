@@ -7,11 +7,11 @@ import com.soybeany.logextractor.core.common.BaseModule;
  */
 public abstract class BaseLogReporter<Param, Log, Report, Data> extends BaseModule<Param, Data> {
 
-    public static final int PROCESS_NUM = 60;
+    public static final int CALLBACK_SEQ = 60;
 
     @Override
-    public int getProcessNum() {
-        return PROCESS_NUM;
+    public int getCallbackSeq() {
+        return CALLBACK_SEQ;
     }
 
     public abstract boolean needMoreLog();

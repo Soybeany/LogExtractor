@@ -184,8 +184,8 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         }
 
         @Override
-        public int getProcessNum() {
-            return SingleFileLoader.PROCESS_NUM + 1;
+        public int getCallbackSeq() {
+            return SingleFileLoader.CALLBACK_SEQ + 1;
         }
 
         @Override
