@@ -96,19 +96,25 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     private void addIncompleteLogsToReport() {
         Collection<Log> logs = mLogAssembler.getIncompleteLogs();
-        List<? extends BaseLogFilter<Log>> filters = mFilterFactory.getIncompleteLogFilters();
-        if (null == logs || null == filters || filters.isEmpty()) {
+        if (null == logs) {
             return;
         }
+        List<? extends BaseLogFilter<Log>> filters = mFilterFactory.getIncompleteLogFilters();
         for (Log log : logs) {
-            tryToAddLogToReporter(filters, log);
+            tryToAddLogToReporter(filters, log, false);
         }
     }
 
     /**
      * @return 是否添加成功
      */
-    private boolean tryToAddLogToReporter(List<? extends BaseLogFilter<Log>> filters, Log log) {
+    private boolean tryToAddLogToReporter(List<? extends BaseLogFilter<Log>> filters, Log log, boolean enableSkipFilter) {
+        if (null == log) {
+            return false;
+        }
+        if ((null == filters || filters.isEmpty()) && !enableSkipFilter) {
+            return false;
+        }
         // 过滤日志对象
         if (null != filters) {
             for (BaseLogFilter<Log> filter : filters) {
@@ -126,23 +132,18 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
 
     private class Callback implements ICallback<Line, Flag> {
         private List<? extends BaseLogFilter<Log>> mFilters = mFilterFactory.getLogFilters();
+        private List<? extends BaseLogFilter<Log>> mIncompleteFilters = mFilterFactory.getIncompleteLogFilters();
 
         public boolean onHandleLineAndFlag(Line line, Flag flag) {
             Log log;
             // 若不是标签对象，则添加行
             if (null == flag) {
                 log = mLogAssembler.addLine(line);
+                return tryToAddLogToReporter(mIncompleteFilters, log, false);
             }
             // 否则添加标签
-            else {
-                log = mLogAssembler.addFlag(flag);
-            }
-            // 若没有日志对象则直接返回
-            if (null == log) {
-                return false;
-            }
-            // 尝试将日志添加到
-            return tryToAddLogToReporter(mFilters, log);
+            log = mLogAssembler.addFlag(flag);
+            return tryToAddLogToReporter(mFilters, log, true);
         }
     }
 
