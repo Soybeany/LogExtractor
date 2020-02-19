@@ -7,6 +7,6 @@ import com.soybeany.logextractor.sfile.data.ISFileLoaderParam;
  */
 public interface IStdFileLoaderParam extends ISFileLoaderParam {
 
-    long getLoadSizeLimit();
+    long getQuerySizeLimit();
 
 }

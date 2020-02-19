@@ -141,7 +141,11 @@ public abstract class BaseManager<Param, Index, Line, Flag, Data> {
             try {
                 module.onStart(param, data);
             } catch (Exception e) {
-                throw new BusinessException("模块(" + module + ")Start异常:" + e.getMessage());
+                if (e instanceof BusinessException) {
+                    throw (BusinessException) e;
+                } else {
+                    throw new BusinessException("模块(" + module.getClass().getSimpleName() + ")Start异常:" + e.getMessage());
+                }
             }
         }
     }
@@ -152,7 +156,11 @@ public abstract class BaseManager<Param, Index, Line, Flag, Data> {
             try {
                 module.onFinish();
             } catch (Exception e) {
-                eMsg = "模块(" + module + ")Finish异常:" + e.getMessage();
+                if (e instanceof BusinessException) {
+                    eMsg = e.getMessage();
+                } else {
+                    eMsg = "模块(" + module.getClass().getSimpleName() + ")Finish异常:" + e.getMessage();
+                }
             }
         }
         if (null != eMsg) {

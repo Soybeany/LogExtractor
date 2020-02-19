@@ -11,19 +11,15 @@ import java.util.*;
 public class MResult {
 
     private final List<MRange> mRanges = new LinkedList<MRange>();
+    private int mIntersectionFlag;
 
-    public MResult(List<MNode> nodes) {
+    public MResult(int intersectionFlag, List<MNode> nodes) {
+        mIntersectionFlag = intersectionFlag;
         setupRanges(nodes);
     }
 
     public List<SFileRange> getIntersectionRanges() {
-        int maxFlag = 0;
-        for (MRange range : mRanges) {
-            if (range.flag > maxFlag) {
-                maxFlag = range.flag;
-            }
-        }
-        return getRanges(maxFlag);
+        return getRanges(mIntersectionFlag);
     }
 
     public List<SFileRange> getRanges(int... flags) {

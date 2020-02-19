@@ -1,25 +1,40 @@
 package com.soybeany.logextractor.efb.data;
 
+import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.std.data.StdParam;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * <br>Created by Soybeany on 2020/2/17.
  */
 public class Param extends StdParam {
-    private File mFile;
+    private static final String FORMAT_DATE = "yyyy-MM-dd";
+
+    public String dir = "D:";
+
+    public String date;
+    public Time fromTime;
+    public Time toTime;
 
     public String userNo;
     public String url;
 
-    public Param(File file) {
-        mFile = file;
-    }
+    public Set<String> types;
+    public String mLogKey;
+    public String mLogRegex;
+
+    public int logLimit = StdParam.DEFAULT_LOG_LIMIT;
+    public long querySizeLimit = 1000;
 
     @Override
     public File getFileToLoad() {
-        return mFile;
+        return new File(dir, getDateNotNull() + ".log");
     }
 
     @Override
@@ -27,27 +42,128 @@ public class Param extends StdParam {
         return "utf-8";
     }
 
-//    @Override
-//    public int getLogLimit() {
-//        return 2;
-//    }
+    @Override
+    public int getLogLimit() {
+        return logLimit;
+    }
 
-//    @Override
-//    public long getLoadSizeLimit() {
-//        return 1000;
-//    }
+    @Override
+    public long getQuerySizeLimit() {
+        return querySizeLimit;
+    }
+
+    // 信息获取
+    public String getDateNotNull() {
+        if (null != date) {
+            return date;
+        }
+        return new SimpleDateFormat(FORMAT_DATE).format(new Date());
+    }
+
+    // ****************************************文件信息****************************************
+
+    public Param dir(String dir) {
+        this.dir = dir;
+        return this;
+    }
+
+    public Param date(String date) {
+        this.date = date;
+        return this;
+    }
+
+    // ****************************************索引****************************************
+
+    public Param fromTime(String time) {
+        fromTime = new Time(time);
+        return this;
+    }
+
+    public Param toTime(String time) {
+        toTime = new Time(time);
+        return this;
+    }
+
+    // ****************************************索引+过滤器****************************************
 
     public Param userNo(String userNo) {
-        if (null != userNo) {
-            this.userNo = userNo.toLowerCase();
-        }
+        this.userNo = userNo;
         return this;
     }
 
     public Param url(String url) {
-        if (null != url) {
-            this.url = url.toLowerCase();
-        }
+        this.url = url;
         return this;
+    }
+
+    // ****************************************过滤器****************************************
+
+    /**
+     * 使用“|”分隔多种类型
+     */
+    public Param types(String types) {
+        this.types = new HashSet<String>(Arrays.asList(types.split("\\|")));
+        return this;
+    }
+
+    public Param logContain(String key) {
+        mLogKey = key;
+        return this;
+    }
+
+    public Param logRegex(String regex) {
+        mLogRegex = regex;
+        return this;
+    }
+
+    // ****************************************查询范围****************************************
+
+    public Param logLimit(int limit) {
+        logLimit = limit;
+        return this;
+    }
+
+    public Param querySizeLimit(long limit) {
+        querySizeLimit = limit;
+        return this;
+    }
+
+    // ****************************************内部类****************************************
+
+    public static class Time {
+        public int hour;
+        public int min;
+        public int sec;
+
+        public static int toValue(int hour, int min, int sec) {
+            return hour * 60 + min * 60 + sec;
+        }
+
+        public static int toValue(int hour, int min) {
+            return hour * 60 + min;
+        }
+
+        /**
+         * 只接受8位或者5位的时间
+         */
+        Time(String str) {
+            int length = str.length();
+            try {
+                if (length < 5 || length > 8) {
+                    throw new Exception("长度不对");
+                }
+                hour = Integer.parseInt(str.substring(0, 2));
+                min = Integer.parseInt(str.substring(3, 5));
+                if (length == 8) {
+                    sec = Integer.parseInt(str.substring(6, 8));
+                }
+            } catch (Exception e) {
+                throw new BusinessException("只支持hh:mm格式或者hh:mm:ss格式的时间:" + e.getMessage());
+            }
+        }
+
+        public int toValue(boolean needSec) {
+            return needSec ? toValue(hour, min, sec) : toValue(hour, min);
+        }
     }
 }

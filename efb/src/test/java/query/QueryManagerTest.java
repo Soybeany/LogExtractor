@@ -6,7 +6,7 @@ import com.soybeany.logextractor.efb.data.Index;
 import com.soybeany.logextractor.efb.data.Param;
 import com.soybeany.logextractor.efb.data.Report;
 import com.soybeany.logextractor.efb.data.flag.RequestFlag;
-import com.soybeany.logextractor.efb.filter.TestFilterFactory;
+import com.soybeany.logextractor.efb.filter.FilterFactory;
 import com.soybeany.logextractor.efb.handler.IndexHandlerFactory;
 import com.soybeany.logextractor.efb.parser.FlagParser;
 import com.soybeany.logextractor.efb.parser.LineParser;
@@ -18,8 +18,6 @@ import com.soybeany.logextractor.std.data.StdLog;
 import com.soybeany.logextractor.std.data.StdReport;
 import com.soybeany.logextractor.std.reporter.StdLogReporter;
 import org.junit.jupiter.api.Test;
-
-import java.io.File;
 
 /**
  * todo 在data中放入锁
@@ -41,8 +39,8 @@ class QueryManagerTest {
         manager.setFlagParser(new FlagParser());
         manager.setLogAssembler(new StdLogAssembler<Param, Data>());
         manager.setReporter(new StdLogReporter<Param, Report, Data>(Report.class));
-        manager.setFilterFactory(new TestFilterFactory());
-        StdReport report = manager.find(new Param(new File("D:\\source2.log")).url("query"));
+        manager.setFilterFactory(new FilterFactory());
+        StdReport report = manager.find(new Param().date("20-01-17").url("query").fromTime("11:02:54").toTime("11:03:01"));
 //        System.out.println(new Gson().toJson(report));
         printUrls(report);
         String reportId;

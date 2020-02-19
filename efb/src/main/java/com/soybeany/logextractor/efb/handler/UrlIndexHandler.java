@@ -8,27 +8,16 @@ import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.std.data.StdLine;
 import com.soybeany.logextractor.std.data.flag.StdFlag;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * <br>Created by Soybeany on 2020/2/18.
  */
-public class UrlIndexHandler extends BaseIndexHandler {
+public class UrlIndexHandler extends BaseKeyIgnoreCaseIndexHandler {
 
     @Override
     public List<SFileRange> getRangeStrict(Param param, Index index) {
-        if (null == param.url) {
-            return null;
-        }
-        List<SFileRange> result = new LinkedList<SFileRange>();
-        for (Map.Entry<String, LinkedList<SFileRange>> entry : index.url.entrySet()) {
-            if (entry.getKey().contains(param.url)) {
-                result.addAll(entry.getValue());
-            }
-        }
-        return result;
+        return getRange("url", index.url, param.url);
     }
 
     @Override
@@ -41,21 +30,6 @@ public class UrlIndexHandler extends BaseIndexHandler {
         if (!TypeChecker.isRequest(stdFlag.type)) {
             return;
         }
-        addIndexValue(index.url, ((RequestFlag) stdFlag).url.toLowerCase(), stdFlag, flagRange);
-    }
-
-    private static class Node implements Comparable<Node> {
-        long value;
-        String state;
-
-        public Node(long value, String state) {
-            this.value = value;
-            this.state = state;
-        }
-
-        @Override
-        public int compareTo(Node o) {
-            return value > o.value ? 1 : value < o.value ? -1 : 0;
-        }
+        addIndexValue(index.url, ((RequestFlag) stdFlag).url, stdFlag, flagRange);
     }
 }

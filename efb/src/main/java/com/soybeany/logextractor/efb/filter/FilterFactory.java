@@ -6,13 +6,13 @@ import com.soybeany.logextractor.efb.data.Data;
 import com.soybeany.logextractor.efb.data.Param;
 import com.soybeany.logextractor.std.data.StdLog;
 
-import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
- * <br>Created by Soybeany on 2020/2/18.
+ * <br>Created by Soybeany on 2020/2/19.
  */
-public class TestFilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
+public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
     private Param mParam;
 
     @Override
@@ -23,10 +23,17 @@ public class TestFilterFactory extends BaseLogFilterFactory<Param, StdLog, Data>
 
     @Override
     public List<? extends BaseLogFilter<StdLog>> getLogFilters() {
-        if (null != mParam.url) {
-            return Collections.singletonList(new TestFilter(mParam.url));
+        List<BaseLogFilter<StdLog>> list = new LinkedList<BaseLogFilter<StdLog>>();
+        if (null != mParam.fromTime || null != mParam.toTime) {
+            list.add(new TimeFilter(mParam.fromTime, mParam.toTime));
         }
-        return null;
+        if (null != mParam.url) {
+            list.add(new UrlFilter(mParam.url));
+        }
+        if (null != mParam.userNo) {
+            list.add(new UserNoFilter(mParam.userNo));
+        }
+        return list;
     }
 
     @Override

@@ -13,10 +13,10 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/18.
  */
-public class UserNoIndexHandler extends BaseIndexHandler {
+public class UserNoIndexHandler extends BaseKeyIgnoreCaseIndexHandler {
     @Override
     public List<SFileRange> getRangeStrict(Param param, Index index) {
-        return null;
+        return getRange("userNo", index.userNo, param.userNo);
     }
 
     @Override
@@ -29,6 +29,6 @@ public class UserNoIndexHandler extends BaseIndexHandler {
         if (!TypeChecker.isRequest(stdFlag.type)) {
             return;
         }
-        addIndexValue(index.userNo, ((RequestFlag) stdFlag).userNo.toLowerCase(), stdFlag, flagRange);
+        addIndexValue(index.userNo, ((RequestFlag) stdFlag).userNo, stdFlag, flagRange);
     }
 }

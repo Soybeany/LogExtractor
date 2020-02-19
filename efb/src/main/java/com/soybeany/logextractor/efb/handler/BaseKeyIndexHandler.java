@@ -1,5 +1,6 @@
 package com.soybeany.logextractor.efb.handler;
 
+import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.efb.data.Index;
 import com.soybeany.logextractor.efb.data.Param;
 import com.soybeany.logextractor.sfile.data.SFileRange;
@@ -8,17 +9,39 @@ import com.soybeany.logextractor.std.data.StdLine;
 import com.soybeany.logextractor.std.data.flag.StdFlag;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
- * <br>Created by Soybeany on 2020/2/18.
+ * <br>Created by Soybeany on 2020/2/19.
  */
-public abstract class BaseIndexHandler implements ISFileIndexHandler<Param, Index, StdLine, StdFlag> {
+public abstract class BaseKeyIndexHandler implements ISFileIndexHandler<Param, Index, StdLine, StdFlag> {
 
     private static final long MAX_VALUE = Long.MAX_VALUE;
-    private final int mMaxCrossLength = 1000;
+    private long mMaxCrossLength = 1000;
+
+    protected void setupMaxCrossLength(long length) {
+        mMaxCrossLength = length;
+    }
+
+    protected List<SFileRange> getRange(String desc, Map<String, LinkedList<SFileRange>> map, String key) {
+        if (null == key) {
+            return null;
+        }
+        List<SFileRange> result = new LinkedList<SFileRange>();
+        for (Map.Entry<String, LinkedList<SFileRange>> entry : map.entrySet()) {
+            if (entry.getKey().contains(key)) {
+                result.addAll(entry.getValue());
+            }
+        }
+        if (result.isEmpty()) {
+            throw new BusinessException("没有找到指定“" + desc + "”的记录");
+        }
+        return result;
+    }
 
     protected void addIndexValue(Map<String, LinkedList<SFileRange>> map, String key, StdFlag flag, SFileRange range) {
+        // 确保列表已创建
         LinkedList<SFileRange> ranges = map.get(key);
         if (null == ranges) {
             map.put(key, ranges = new LinkedList<SFileRange>());

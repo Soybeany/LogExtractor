@@ -42,22 +42,18 @@ public class RangeMerger {
             throw new BusinessException("范围flag已到达上限");
         }
         try {
-            merge(mNextFlag, ranges);
+            for (SFileRange range : ranges) {
+                mNodes.add(new MNode(mNextFlag, range.start, true));
+                mNodes.add(new MNode(mNextFlag, range.end, false));
+            }
             return mNextFlag;
         } finally {
             mNextFlag <<= 1;
         }
     }
 
-    public void merge(int flag, List<SFileRange> ranges) {
-        for (SFileRange range : ranges) {
-            mNodes.add(new MNode(flag, range.start, true));
-            mNodes.add(new MNode(flag, range.end, false));
-        }
-    }
-
     public MResult getResult() {
-        return new MResult(mNodes);
+        return new MResult(mNextFlag - 1, mNodes);
     }
 
 }

@@ -1,5 +1,6 @@
 package com.soybeany.logextractor.std.Loader;
 
+import com.soybeany.logextractor.core.query.QueryManager;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
@@ -16,21 +17,23 @@ public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFi
 
     private Data mData;
     private SFileRange mCurLineRange;
-    private long mLoadSizeLimit;
-    private long mMaxPointer;
+    private long mQuerySizeLimit;
+    private long mMaxPointer = Long.MAX_VALUE;
 
     @Override
     public void onStart(Param param, Data data) throws Exception {
         super.onStart(param, data);
         mData = data;
         mCurLineRange = data.getCurLineRange();
-        mLoadSizeLimit = param.getLoadSizeLimit();
+        mQuerySizeLimit = param.getQuerySizeLimit();
     }
 
     @Override
     public void onInit(String purpose, Index index) throws IOException {
         super.onInit(purpose, index);
-        mMaxPointer = mCurLineRange.end + mLoadSizeLimit;
+        if (QueryManager.PURPOSE.equals(purpose)) {
+            mMaxPointer = mCurLineRange.end + mQuerySizeLimit;
+        }
     }
 
     @Override
