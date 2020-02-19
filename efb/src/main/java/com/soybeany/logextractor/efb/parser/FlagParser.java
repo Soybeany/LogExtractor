@@ -1,7 +1,8 @@
-package com.soybeany.logextractor.efb;
+package com.soybeany.logextractor.efb.parser;
 
-import com.soybeany.logextractor.efb.data.EFBData;
-import com.soybeany.logextractor.efb.data.EFBParam;
+import com.soybeany.logextractor.efb.data.Data;
+import com.soybeany.logextractor.efb.data.Param;
+import com.soybeany.logextractor.efb.factory.flag.RequestFlagFactory;
 import com.soybeany.logextractor.std.data.StdLine;
 import com.soybeany.logextractor.std.data.flag.StdFlagInfo;
 import com.soybeany.logextractor.std.parser.StdFlagParser;
@@ -12,12 +13,12 @@ import java.util.regex.Pattern;
 /**
  * <br>Created by Soybeany on 2020/2/17.
  */
-public class EFBFlagParser extends StdFlagParser<EFBParam, EFBData> {
+public class FlagParser extends StdFlagParser<Param, Data> {
     private static Pattern PATTERN = Pattern.compile("^FLAG-(.+?)-(.+?):(.*)");
 
     {
-        addFactory("客户端", new EFBRequestFlagFactory("客户端"));
-        addFactory("管理端", new EFBRequestFlagFactory("管理端"));
+        addFactory("客户端", new RequestFlagFactory("客户端"));
+        addFactory("管理端", new RequestFlagFactory("管理端"));
     }
 
     @Override

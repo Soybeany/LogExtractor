@@ -15,6 +15,7 @@ import java.util.List;
 public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFileIndex, Data extends IStdFileLoaderData> extends SingleFileLoader<Param, Index, Data> {
 
     private Data mData;
+    private SFileRange mCurLineRange;
     private long mLoadSizeLimit;
     private long mMaxPointer;
 
@@ -22,18 +23,19 @@ public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFi
     public void onStart(Param param, Data data) throws Exception {
         super.onStart(param, data);
         mData = data;
+        mCurLineRange = data.getCurLineRange();
         mLoadSizeLimit = param.getLoadSizeLimit();
     }
 
     @Override
     public void onInit(String purpose, Index index) throws IOException {
         super.onInit(purpose, index);
-        mMaxPointer = mData.getCurEndPointer() + mLoadSizeLimit;
+        mMaxPointer = mCurLineRange.end + mLoadSizeLimit;
     }
 
     @Override
     public String getNextLine() throws IOException {
-        if (mMaxPointer < mData.getCurEndPointer()) {
+        if (mMaxPointer < mCurLineRange.end) {
             mData.setReachLoadLimit(true);
             return null;
         }
@@ -43,7 +45,8 @@ public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFi
     @Override
     public void onScanFinish() {
         super.onScanFinish();
-        mData.setScanRange(SFileRange.between(mData.getStartPointer(), mData.getCurEndPointer()));
+        SFileRange needLoadRange = mData.getNeedLoadRange();
+        mData.setScanRange(SFileRange.between(needLoadRange.start, mCurLineRange.end));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.soybeany.logextractor.sfile.merge;
 
+import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.sfile.data.SFileRange;
 
 import java.util.*;
@@ -37,16 +38,33 @@ public class MResult {
         Collections.sort(nodes);
         int lastFlag = 0;
         long lastIndex = 0;
+        Map<Integer, Integer> countMap = new HashMap<Integer, Integer>();
         for (MNode node : nodes) {
             // 上一标识不为0，则表示能生成范围
             if (0 != lastFlag) {
                 mRanges.add(new MRange(lastFlag, lastIndex, node.index));
             }
             // 更新标识
+            Integer flagCount = countMap.get(node.flag);
             if (node.isStart) {
-                lastFlag |= node.flag;
+                if (null == flagCount) {
+                    countMap.put(node.flag, 1);
+                    lastFlag |= node.flag;
+                } else {
+                    countMap.put(node.flag, ++flagCount);
+                }
             } else {
-                lastFlag ^= node.flag;
+                if (null == flagCount) {
+                    throw new BusinessException("范围缺少开始标识");
+                }
+                countMap.put(node.flag, --flagCount);
+                if (0 > flagCount) {
+                    throw new BusinessException("过多的范围结束标识");
+                }
+                if (0 == flagCount) {
+                    countMap.remove(node.flag);
+                    lastFlag ^= node.flag;
+                }
             }
             // 更新下标
             lastIndex = node.index;

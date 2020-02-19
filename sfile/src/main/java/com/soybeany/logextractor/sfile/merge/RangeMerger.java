@@ -35,6 +35,9 @@ public class RangeMerger {
      * @return 该批范围的标识
      */
     public synchronized int merge(List<SFileRange> ranges) {
+        if (null == ranges) {
+            return -1;
+        }
         if (mNextFlag >= MAX_FLAG) {
             throw new BusinessException("范围flag已到达上限");
         }

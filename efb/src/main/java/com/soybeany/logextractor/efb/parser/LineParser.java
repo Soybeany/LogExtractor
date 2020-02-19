@@ -1,7 +1,7 @@
-package com.soybeany.logextractor.efb;
+package com.soybeany.logextractor.efb.parser;
 
-import com.soybeany.logextractor.efb.data.EFBData;
-import com.soybeany.logextractor.efb.data.EFBParam;
+import com.soybeany.logextractor.efb.data.Data;
+import com.soybeany.logextractor.efb.data.Param;
 import com.soybeany.logextractor.std.data.StdLine;
 import com.soybeany.logextractor.std.parser.StdLineParser;
 
@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class EFBLineParser extends StdLineParser<EFBParam, EFBData> {
+public class LineParser extends StdLineParser<Param, Data> {
     private static Pattern PATTERN = Pattern.compile("\\[(.{17})] \\[(INFO|WARN|ERROR)] \\[(.*?)] \\{(.*?)}-(.*)");
 
     @Override

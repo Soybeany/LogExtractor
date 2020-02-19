@@ -44,7 +44,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         mDataInstanceFactory = dataFactory;
 
         mScanManager.setCreatorFactory(new IndexCreatorFactoryAdapter());
-        mQueryManager.addModule(new Module());
+        mQueryManager.addModule(new InnerModule());
     }
 
     // ****************************************设置API****************************************
@@ -173,7 +173,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         BaseIndexCreator<Index, Info> getNewIndexCreator(ISFileIndexHandler<Param, Index, Line, Flag> handler);
     }
 
-    private class Module extends BaseModule<Param, Data> implements IQueryListener {
+    private class InnerModule extends BaseModule<Param, Data> implements IQueryListener {
         private Data mData;
 
         @Override
@@ -190,19 +190,20 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
         @Override
         public void onReadyToGenerateReport() {
-            long curPointer = mData.getCurEndPointer();
+            long curLineEndPointer = mData.getCurLineRange().end;
             // 文件已加载完
-            if (curPointer == mData.getFileSize()) {
+            if (curLineEndPointer == mData.getFileSize()) {
                 mData.setNoNextDataReason(IRenewalData.REASON_EOF);
                 return;
             }
+            SFileRange needLoadRange = mData.getNeedLoadRange();
             // 范围已加载完
-            if (curPointer == mData.getTargetEndPointer()) {
+            if (curLineEndPointer == needLoadRange.end) {
                 mData.setNoNextDataReason(IRenewalData.REASON_EOR);
                 return;
             }
             // 没有加载数据
-            if (curPointer == mData.getStartPointer()) {
+            if (curLineEndPointer == needLoadRange.start) {
                 mData.setNoNextDataReason(IRenewalData.REASON_NOT_LOAD);
                 return;
             }
@@ -216,23 +217,29 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
             if (null != mData.getExceptLoadRanges()) {
                 return;
             }
-            List<ISFileIndexHandler<Param, Index, Line, Flag>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
-            // 没有指定范围则设置最广的范围
-            if (null == handlers) {
-                mData.setExceptLoadRanges(Collections.singletonList(SFileRange.max()));
-                return;
-            }
-            // 设置指定的范围
-            Index index = mIndexStorageCenter.load(param.getIndexId());
+            // 设置范围
             RangeMerger merger = new RangeMerger();
-            for (ISFileIndexHandler<Param, Index, Line, Flag> handler : handlers) {
-                merger.merge(handler.getRangeStrict(param, index));
+            merger.merge(Collections.singletonList(SFileRange.max()));
+            List<? extends ISFileIndexHandler<Param, Index, Line, Flag>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
+            if (null != handlers) {
+                Index index = mIndexStorageCenter.load(param.getIndexId());
+                for (ISFileIndexHandler<Param, Index, Line, Flag> handler : handlers) {
+                    merger.merge(handler.getRangeStrict(param, index));
+                }
             }
             mData.setExceptLoadRanges(merger.getResult().getIntersectionRanges());
         }
     }
 
     private class IndexCreatorFactoryAdapter extends BaseIndexCreatorFactory<Param, Index, Line, Flag, Data> {
+        private SFileRange mCurLineRange;
+
+        @Override
+        public void onStart(Param param, Data data) throws Exception {
+            super.onStart(param, data);
+            mCurLineRange = data.getCurLineRange();
+        }
+
         @Override
         public List<? extends BaseIndexCreator<Index, Line>> getLineIndexCreators() {
             return getCreators(new ICallback<Param, Index, Line, Flag, Data, Line>() {
@@ -241,7 +248,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
                     return new BaseIndexCreator<Index, Line>() {
                         @Override
                         public void onCreateIndex(Index index, Line line) {
-                            handler.onCreateIndexWithLine(index, line);
+                            handler.onCreateIndexWithLine(index, line, mCurLineRange);
                         }
                     };
                 }
@@ -256,7 +263,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
                     return new BaseIndexCreator<Index, Flag>() {
                         @Override
                         public void onCreateIndex(Index index, Flag flag) {
-                            handler.onCreateIndexWithFlag(index, flag);
+                            handler.onCreateIndexWithFlag(index, flag, mCurLineRange);
                         }
                     };
                 }
@@ -264,7 +271,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         }
 
         private <Info> List<BaseIndexCreator<Index, Info>> getCreators(ICallback<Param, Index, Line, Flag, Data, Info> callback) {
-            List<ISFileIndexHandler<Param, Index, Line, Flag>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
+            List<? extends ISFileIndexHandler<Param, Index, Line, Flag>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
             if (null == handlers) {
                 return null;
             }

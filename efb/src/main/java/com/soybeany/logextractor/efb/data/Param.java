@@ -7,13 +7,13 @@ import java.io.File;
 /**
  * <br>Created by Soybeany on 2020/2/17.
  */
-public class EFBParam extends StdParam {
+public class Param extends StdParam {
     private File mFile;
 
     public String userNo;
     public String url;
 
-    public EFBParam(File file) {
+    public Param(File file) {
         mFile = file;
     }
 
@@ -37,13 +37,17 @@ public class EFBParam extends StdParam {
 //        return 1000;
 //    }
 
-    public EFBParam userNo(String userNo) {
-        this.userNo = userNo;
+    public Param userNo(String userNo) {
+        if (null != userNo) {
+            this.userNo = userNo.toLowerCase();
+        }
         return this;
     }
 
-    public EFBParam url(String url) {
-        this.url = url;
+    public Param url(String url) {
+        if (null != url) {
+            this.url = url.toLowerCase();
+        }
         return this;
     }
 }

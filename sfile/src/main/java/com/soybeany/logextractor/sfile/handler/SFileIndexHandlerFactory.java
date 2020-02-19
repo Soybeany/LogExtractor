@@ -18,6 +18,6 @@ public abstract class SFileIndexHandlerFactory<Param extends ISFileParam, Index 
         return CALLBACK_SEQ;
     }
 
-    public abstract List<ISFileIndexHandler<Param, Index, Line, Flag>> getHandlerList();
+    public abstract List<? extends ISFileIndexHandler<Param, Index, Line, Flag>> getHandlerList();
 
 }

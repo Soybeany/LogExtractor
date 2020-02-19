@@ -59,31 +59,34 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
         mTargetEndPointer = mLoadRanges.get(mLoadRanges.size() - 1).end;
         // 更新数据
         long startPointer = mRaf.getFilePointer();
-        mData.setStartPointer(startPointer);
-        mData.setCurEndPointer(startPointer);
-        mData.setTargetEndPointer(mTargetEndPointer);
+        SFileRange curLineRange = mData.getCurLineRange();
+        SFileRange needLoadRange = mData.getNeedLoadRange();
+        curLineRange.updateStart(startPointer);
+        curLineRange.updateEnd(startPointer);
+        needLoadRange.updateStart(startPointer);
+        needLoadRange.updateEnd(mTargetEndPointer);
         mData.setFileSize(mFileLength);
     }
 
     @Override
     public String getNextLine() throws IOException {
         // 判断是否已到达目标位点
-        long pointer = mData.getCurEndPointer();
-        if (mTargetEndPointer <= pointer) {
+        SFileRange curLineRange = mData.getCurLineRange();
+        if (mTargetEndPointer <= curLineRange.end) {
             return null;
         }
         // 移动pointer
-        switchPointerIfNeed(pointer);
+        switchPointerIfNeedAndUpdateStartPointer(curLineRange);
         // 读取一行新内容
         String rawLine = mRaf.readLine();
         // 更新当前结束位置
-        mData.setCurEndPointer(mRaf.getFilePointer());
+        curLineRange.updateEnd(mRaf.getFilePointer());
         return new String(rawLine.getBytes("ISO-8859-1"), mCharset);
     }
 
     @Override
     public void onScanFinish() {
-        mIndex.setPointer(mData.getCurEndPointer());
+        mIndex.setPointer(mData.getCurLineRange().end);
     }
 
     @Override
@@ -93,7 +96,7 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
         if (toIndex > fomIndex) {
             mLoadRanges.subList(fomIndex, toIndex).clear();
         }
-        mLoadRanges.get(mRangeIndex).updateEnd(mData.getCurEndPointer());
+        mLoadRanges.get(mRangeIndex).updateEnd(mData.getCurLineRange().end);
     }
 
     @Override
@@ -130,7 +133,7 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
             }
         }
         // 结合数据中设置的范围
-        mergeSingleRange(merger, SFileRange.between(mData.getStartPointer(), mData.getTargetEndPointer()));
+        mergeSingleRange(merger, mData.getNeedLoadRange());
         // 结合文件长度
         mergeSingleRange(merger, SFileRange.to(mFileLength));
         // 得到实际需要加载的范围
@@ -142,14 +145,16 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
         merger.merge(Collections.singletonList(range));
     }
 
-    private void switchPointerIfNeed(long pointer) throws IOException {
+    private void switchPointerIfNeedAndUpdateStartPointer(SFileRange curLineRange) throws IOException {
         // 当前范围未读完则继续
-        if (mRangeEndPointer > pointer) {
+        if (mRangeEndPointer > curLineRange.end) {
+            curLineRange.updateStart(curLineRange.end);
             return;
         }
         // 切换到下一范围
         SFileRange nextRange = mLoadRanges.get(++mRangeIndex);
         mRaf.seek(nextRange.start);
         mRangeEndPointer = nextRange.end;
+        curLineRange.updateStart(mRaf.getFilePointer());
     }
 }

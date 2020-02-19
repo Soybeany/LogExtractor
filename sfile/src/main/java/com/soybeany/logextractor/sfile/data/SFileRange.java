@@ -24,6 +24,10 @@ public class SFileRange {
         return between(0, Long.MAX_VALUE);
     }
 
+    public static SFileRange empty() {
+        return between(-1, -1);
+    }
+
     private SFileRange(long start, long end) {
         this.start = start;
         this.end = end;

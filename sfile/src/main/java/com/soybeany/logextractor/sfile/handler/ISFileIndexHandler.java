@@ -13,7 +13,7 @@ public interface ISFileIndexHandler<Param extends ISFileParam, Index extends ISF
 
     List<SFileRange> getRangeStrict(Param param, Index index);
 
-    void onCreateIndexWithLine(Index index, Line line);
+    void onCreateIndexWithLine(Index index, Line line, SFileRange lineRange);
 
-    void onCreateIndexWithFlag(Index index, Flag flag);
+    void onCreateIndexWithFlag(Index index, Flag flag, SFileRange flagRange);
 }

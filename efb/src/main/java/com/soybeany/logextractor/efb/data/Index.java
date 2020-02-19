@@ -5,26 +5,26 @@ import com.soybeany.logextractor.sfile.data.SFileRange;
 import com.soybeany.logextractor.std.data.StdIndex;
 
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class EFBIndex extends StdIndex {
+public class Index extends StdIndex {
     public final Map<String, long[]> time = new HashMap<String, long[]>();
-    public final Map<String, List<SFileRange>> url = new HashMap<String, List<SFileRange>>();
-    public final Map<String, List<SFileRange>> user = new HashMap<String, List<SFileRange>>();
+    public final Map<String, LinkedList<SFileRange>> url = new HashMap<String, LinkedList<SFileRange>>();
+    public final Map<String, LinkedList<SFileRange>> userNo = new HashMap<String, LinkedList<SFileRange>>();
 
     @Override
     public void copy(ICopiableIndex index) {
         super.copy(index);
-        if (!(index instanceof EFBIndex)) {
+        if (!(index instanceof Index)) {
             return;
         }
-        EFBIndex otherIndex = (EFBIndex) index;
+        Index otherIndex = (Index) index;
         time.putAll(otherIndex.time);
         url.putAll(otherIndex.url);
-        user.putAll(otherIndex.user);
+        userNo.putAll(otherIndex.userNo);
     }
 }

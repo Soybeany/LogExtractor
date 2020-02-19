@@ -27,12 +27,10 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     private String mReason;
 
     private long mFileSize;
-    private List<SFileRange> mExpectLoadRange;
-    private List<SFileRange> mActLoadRange;
-
-    private long mStartPointer;
-    private long mCurEndPointer;
-    private long mTargetEndPointer = Long.MAX_VALUE;
+    private final SFileRange mCurLineRange = SFileRange.empty();
+    private final SFileRange mNeedLoadRange = SFileRange.max();
+    private List<SFileRange> mExpectLoadRanges;
+    private List<SFileRange> mActLoadRanges;
 
     @Override
     public String getLastDataId() {
@@ -85,53 +83,33 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     }
 
     @Override
+    public SFileRange getNeedLoadRange() {
+        return mNeedLoadRange;
+    }
+
+    @Override
+    public SFileRange getCurLineRange() {
+        return mCurLineRange;
+    }
+
+    @Override
     public List<SFileRange> getExceptLoadRanges() {
-        return mExpectLoadRange;
+        return mExpectLoadRanges;
     }
 
     @Override
     public void setExceptLoadRanges(List<SFileRange> ranges) {
-        mExpectLoadRange = ranges;
+        mExpectLoadRanges = ranges;
     }
 
     @Override
     public List<SFileRange> getActLoadRanges() {
-        return mActLoadRange;
+        return mActLoadRanges;
     }
 
     @Override
     public void setActLoadRanges(List<SFileRange> range) {
-        mActLoadRange = range;
-    }
-
-    @Override
-    public long getStartPointer() {
-        return mStartPointer;
-    }
-
-    @Override
-    public void setStartPointer(long pointer) {
-        mStartPointer = pointer;
-    }
-
-    @Override
-    public long getCurEndPointer() {
-        return mCurEndPointer;
-    }
-
-    @Override
-    public void setCurEndPointer(long pointer) {
-        mCurEndPointer = pointer;
-    }
-
-    @Override
-    public long getTargetEndPointer() {
-        return mTargetEndPointer;
-    }
-
-    @Override
-    public void setTargetEndPointer(long pointer) {
-        mTargetEndPointer = pointer;
+        mActLoadRanges = range;
     }
 
     public void beNextDataOf(SFileData<Param, Index, Report> data) {
@@ -144,7 +122,7 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
         // 设置参数
         param = data.param;
         // 设置位点
-        setStartPointer(data.getCurEndPointer());
+        mNeedLoadRange.updateStart(data.getCurLineRange().end);
         // 设置期望范围
         setExceptLoadRanges(data.getExceptLoadRanges());
     }
