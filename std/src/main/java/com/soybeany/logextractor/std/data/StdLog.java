@@ -19,13 +19,21 @@ public class StdLog {
     }
 
     public String getType() {
-        if (null != startFlag) {
-            return startFlag.type;
-        }
-        if (null != endFlag) {
-            return endFlag.type;
+        StdFlag flag = getFlag();
+        if (null != flag) {
+            return flag.type;
         }
         return StdFlag.TYPE_UNKNOWN;
+    }
+
+    public StdFlag getFlag() {
+        if (null != startFlag) {
+            return startFlag;
+        }
+        if (null != endFlag) {
+            return endFlag;
+        }
+        return null;
     }
 
     public boolean isComplete() {

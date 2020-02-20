@@ -9,9 +9,9 @@ import java.util.Set;
  */
 public class TypeChecker {
 
-    private static final String TYPE_CLIENT = "客户端";
-    private static final String TYPE_MANAGE = "管理端";
-    private static final String TYPE_TIMER = "定时器";
+    public static final String TYPE_CLIENT = "客户端";
+    public static final String TYPE_MANAGE = "管理端";
+    public static final String TYPE_TIMER = "定时器";
 
     public static final Set<String> ALL_TYPES = new HashSet<String>(Arrays.asList(TYPE_CLIENT, TYPE_MANAGE, TYPE_TIMER));
 

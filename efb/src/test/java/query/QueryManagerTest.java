@@ -1,11 +1,11 @@
 package query;
 
+import com.google.gson.Gson;
 import com.soybeany.logextractor.core.center.MemStorageCenter;
 import com.soybeany.logextractor.efb.data.Data;
 import com.soybeany.logextractor.efb.data.Index;
 import com.soybeany.logextractor.efb.data.Param;
-import com.soybeany.logextractor.efb.data.Report;
-import com.soybeany.logextractor.efb.data.flag.RequestFlag;
+import com.soybeany.logextractor.efb.data.Result;
 import com.soybeany.logextractor.efb.filter.FilterFactory;
 import com.soybeany.logextractor.efb.handler.IndexHandlerFactory;
 import com.soybeany.logextractor.efb.parser.FlagParser;
@@ -14,7 +14,6 @@ import com.soybeany.logextractor.sfile.SFileLogExtractor;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
 import com.soybeany.logextractor.std.StdLogExtractor;
 import com.soybeany.logextractor.std.assembler.StdLogAssembler;
-import com.soybeany.logextractor.std.data.StdLog;
 import com.soybeany.logextractor.std.data.StdReport;
 import com.soybeany.logextractor.std.reporter.StdLogReporter;
 import org.junit.jupiter.api.Test;
@@ -29,7 +28,7 @@ class QueryManagerTest {
 
     @Test
     public void testLog() {
-        StdLogExtractor<Param, Index, Report, Data> manager = new StdLogExtractor<Param, Index, Report, Data>(Data.class, Index.class);
+        StdLogExtractor<Param, Index, StdReport, Data> manager = new StdLogExtractor<Param, Index, StdReport, Data>(Data.class, Index.class);
         manager.setIdGenerator(new SFileLogExtractor.SimpleIdGenerator());
         manager.setIndexStorageCenter(new MemStorageCenter<Index>());
         manager.setIndexHandlerFactory(new IndexHandlerFactory());
@@ -38,32 +37,23 @@ class QueryManagerTest {
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
         manager.setLogAssembler(new StdLogAssembler<Param, Data>());
-        manager.setReporter(new StdLogReporter<Param, Report, Data>(Report.class));
+        manager.setReporter(new StdLogReporter<Param, StdReport, Data>(StdReport.class));
         manager.setFilterFactory(new FilterFactory());
         StdReport report = manager.find(new Param().date("20-01-17").types("管理端|客户端").url("query").fromTime("11:01:57").toTime("11:03:01"));
-//        System.out.println(new Gson().toJson(report));
-        printUrls(report);
+        printReport(report);
         String reportId;
         long query = report.queryLoad;
         while (null != (reportId = report.nextDataId)) {
             report = manager.findById(reportId);
             query += report.queryLoad;
-//            System.out.println(new Gson().toJson(report));
-            printUrls(report);
+            printReport(report);
         }
         System.out.println("totalQuery:" + query + " and count:" + mNo);
     }
 
-    private void printUrls(StdReport report) {
-        for (StdLog log : report.logs) {
-            try {
-                RequestFlag flag = (RequestFlag) log.startFlag;
-                System.out.println(flag.info.time + "  " + flag.url);
-                mNo++;
-            } catch (Exception e) {
-                System.out.println("异常");
-            }
-        }
+    private void printReport(StdReport report) {
+        String json = new Gson().toJson(new Result(report).list);
+        System.out.println(json);
     }
 
 }
