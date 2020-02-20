@@ -40,7 +40,7 @@ class QueryManagerTest {
         manager.setLogAssembler(new StdLogAssembler<Param, Data>());
         manager.setReporter(new StdLogReporter<Param, Report, Data>(Report.class));
         manager.setFilterFactory(new FilterFactory());
-        StdReport report = manager.find(new Param().date("20-01-17").url("query").fromTime("11:01:57").toTime("11:03:01"));
+        StdReport report = manager.find(new Param().date("20-01-17").types("管理端|客户端").url("query").fromTime("11:01:57").toTime("11:03:01"));
 //        System.out.println(new Gson().toJson(report));
         printUrls(report);
         String reportId;

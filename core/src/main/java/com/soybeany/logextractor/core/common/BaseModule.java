@@ -26,7 +26,7 @@ public abstract class BaseModule<Param, Data> implements Comparable<BaseModule<P
     }
 
     /**
-     * 回调执行时的顺序，小的会先被回调
+     * 回调执行时的顺序：onStart时小的会先被回调，onFinish时小的会晚被回调
      */
     public abstract int getCallbackSeq();
 }

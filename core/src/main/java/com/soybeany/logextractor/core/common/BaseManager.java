@@ -17,7 +17,7 @@ public abstract class BaseManager<Param, Index, Line, Flag, Data> {
 
     private final List<BaseModule<Param, Data>> mExModules = new LinkedList<BaseModule<Param, Data>>();
 
-    protected List<BaseModule<Param, Data>> mModules;
+    protected LinkedList<BaseModule<Param, Data>> mModules;
 
     private IInstanceFactory<Index> mIndexInstanceFactory;
     private BaseStorageCenter<Index> mIndexStorageCenter;
@@ -64,21 +64,21 @@ public abstract class BaseManager<Param, Index, Line, Flag, Data> {
     protected void setAndCheckModules(List<BaseModule<Param, Data>> modules) {
         // 检测非模块组件
         ToolUtils.checkNull(mIndexStorageCenter, "IndexStorageCenter不能设置为null");
-        mModules = new ArrayList<BaseModule<Param, Data>>(modules);
+        mModules = new LinkedList<BaseModule<Param, Data>>(modules);
         // 设置额外检测的模块
         mModules.addAll(Arrays.asList(mLoader, mLineParser, mFlagParser));
         mModules.addAll(mExModules);
         Collections.sort(mModules);
         // 检测模块
-        for (int i = 0; i < mModules.size(); i++) {
-            BaseModule<Param, Data> module = mModules.get(i);
-            ToolUtils.checkNull(module, "模块设置不完整(" + i + ")");
+        int i = 0;
+        for (BaseModule<Param, Data> module : mModules) {
+            ToolUtils.checkNull(module, "模块设置不完整(" + ++i + ")");
         }
     }
 
     protected synchronized void start(String purpose, Param param, Data data, Index index) {
         // 触发回调
-        invokeOnStart(mModules, param, data);
+        invokeOnStart(param, data);
         // 增加计数
         WORK_COUNT++;
         // 初始化加载器
@@ -93,7 +93,7 @@ public abstract class BaseManager<Param, Index, Line, Flag, Data> {
         // 减少计数
         WORK_COUNT--;
         // 触发回调
-        invokeOnFinish(mModules);
+        invokeOnFinish();
     }
 
     protected Index getIndexFromStorageCenter(String indexId) {
@@ -136,8 +136,8 @@ public abstract class BaseManager<Param, Index, Line, Flag, Data> {
 
     // ****************************************内部方法****************************************
 
-    private void invokeOnStart(List<BaseModule<Param, Data>> modules, Param param, Data data) {
-        for (BaseModule<Param, Data> module : modules) {
+    private void invokeOnStart(Param param, Data data) {
+        for (BaseModule<Param, Data> module : mModules) {
             try {
                 module.onStart(param, data);
             } catch (Exception e) {
@@ -150,9 +150,11 @@ public abstract class BaseManager<Param, Index, Line, Flag, Data> {
         }
     }
 
-    private void invokeOnFinish(List<BaseModule<Param, Data>> modules) {
+    private void invokeOnFinish() {
         String eMsg = null;
-        for (BaseModule<Param, Data> module : modules) {
+        Iterator<BaseModule<Param, Data>> iterator = mModules.descendingIterator();
+        while (iterator.hasNext()) {
+            BaseModule<Param, Data> module = iterator.next();
             try {
                 module.onFinish();
             } catch (Exception e) {

@@ -48,5 +48,8 @@ public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
         if (null != mParam.userNo) {
             list.add(new UserNoFilter(mParam.userNo));
         }
+        if (null != mParam.types) {
+            list.add(new TypeFilter(mParam.types));
+        }
     }
 }
