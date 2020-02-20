@@ -51,5 +51,14 @@ public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
         if (null != mParam.types) {
             list.add(new TypeFilter(mParam.types));
         }
+        if (null != mParam.logId) {
+            list.add(new LogIdFilter(mParam.logId));
+        }
+        if (null != mParam.logContainKey) {
+            list.add(new LogContainKeyFilter(mParam.logContainKey));
+        }
+        if (null != mParam.logContainRegex) {
+            list.add(new LogContainRegexFilter(mParam.logContainRegex));
+        }
     }
 }

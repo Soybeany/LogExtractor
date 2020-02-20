@@ -27,8 +27,9 @@ public class Param extends StdParam {
     public String url;
 
     public Set<String> types;
-    public String logKey;
-    public String logRegex;
+    public String logId;
+    public String logContainKey;
+    public String logContainRegex;
     public Boolean enableIncompleteLogs;
 
     public int logLimit = StdParam.DEFAULT_LOG_LIMIT;
@@ -129,13 +130,18 @@ public class Param extends StdParam {
         return this;
     }
 
-    public Param logContain(String key) {
-        logKey = key;
+    public Param logContainKey(String key) {
+        logContainKey = key;
         return this;
     }
 
-    public Param logRegex(String regex) {
-        logRegex = regex;
+    public Param logContainRegex(String regex) {
+        logContainRegex = regex;
+        return this;
+    }
+
+    public Param logId(String id) {
+        logId = id;
         return this;
     }
 
