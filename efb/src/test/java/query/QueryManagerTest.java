@@ -40,7 +40,7 @@ class QueryManagerTest {
         manager.setLogAssembler(new StdLogAssembler<Param, Data>());
         manager.setReporter(new StdLogReporter<Param, Report, Data>(Report.class));
         manager.setFilterFactory(new FilterFactory());
-        StdReport report = manager.find(new Param().date("20-01-17").url("query").fromTime("11:02:54").toTime("11:03:01"));
+        StdReport report = manager.find(new Param().date("20-01-17").url("query").fromTime("11:01:57").toTime("11:03:01"));
 //        System.out.println(new Gson().toJson(report));
         printUrls(report);
         String reportId;
@@ -57,7 +57,7 @@ class QueryManagerTest {
     private void printUrls(StdReport report) {
         for (StdLog log : report.logs) {
             try {
-                RequestFlag flag = (RequestFlag) log.endFlag;
+                RequestFlag flag = (RequestFlag) log.startFlag;
                 System.out.println(flag.info.time + "  " + flag.url);
                 mNo++;
             } catch (Exception e) {
@@ -65,4 +65,5 @@ class QueryManagerTest {
             }
         }
     }
+
 }

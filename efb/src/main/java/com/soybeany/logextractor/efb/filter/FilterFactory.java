@@ -24,6 +24,21 @@ public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
     @Override
     public List<? extends BaseLogFilter<StdLog>> getLogFilters() {
         List<BaseLogFilter<StdLog>> list = new LinkedList<BaseLogFilter<StdLog>>();
+        addCommonFilters(list);
+        return list;
+    }
+
+    @Override
+    public List<? extends BaseLogFilter<StdLog>> getIncompleteLogFilters() {
+        List<BaseLogFilter<StdLog>> list = new LinkedList<BaseLogFilter<StdLog>>();
+        if (null != mParam.enableIncompleteLogs) {
+            list.add(new IncompleteLogFilter(mParam.enableIncompleteLogs));
+        }
+        addCommonFilters(list);
+        return list;
+    }
+
+    private void addCommonFilters(List<BaseLogFilter<StdLog>> list) {
         if (null != mParam.fromTime || null != mParam.toTime) {
             list.add(new TimeFilter(mParam.fromTime, mParam.toTime));
         }
@@ -33,11 +48,5 @@ public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
         if (null != mParam.userNo) {
             list.add(new UserNoFilter(mParam.userNo));
         }
-        return list;
-    }
-
-    @Override
-    public List<? extends BaseLogFilter<StdLog>> getIncompleteLogFilters() {
-        return null;
     }
 }

@@ -1,6 +1,7 @@
 package com.soybeany.logextractor.efb.data;
 
 import com.soybeany.logextractor.core.common.BusinessException;
+import com.soybeany.logextractor.efb.util.TypeChecker;
 import com.soybeany.logextractor.std.data.StdParam;
 
 import java.io.File;
@@ -26,15 +27,20 @@ public class Param extends StdParam {
     public String url;
 
     public Set<String> types;
-    public String mLogKey;
-    public String mLogRegex;
+    public String logKey;
+    public String logRegex;
+    public Boolean enableIncompleteLogs;
 
     public int logLimit = StdParam.DEFAULT_LOG_LIMIT;
-    public long querySizeLimit = 1000;
+    public long querySizeLimit = StdParam.DEFAULT_QUERY_SIZE_LIMIT;
 
     @Override
     public File getFileToLoad() {
-        return new File(dir, date + ".log");
+        File file = new File(dir, date + ".log");
+        if (!file.exists()) {
+            throw new BusinessException("指定的文件不存在:" + file.getPath());
+        }
+        return file;
     }
 
     @Override
@@ -80,11 +86,17 @@ public class Param extends StdParam {
 
     // ****************************************索引****************************************
 
+    /**
+     * 请求开始的时间，不早于该时间
+     */
     public Param fromTime(String time) {
         fromTime = new Time(time);
         return this;
     }
 
+    /**
+     * 请求开始的时间，不晚于该时间
+     */
     public Param toTime(String time) {
         toTime = new Time(time);
         return this;
@@ -109,16 +121,26 @@ public class Param extends StdParam {
      */
     public Param types(String types) {
         this.types = new HashSet<String>(Arrays.asList(types.split("\\|")));
+        for (String type : this.types) {
+            if (!TypeChecker.ALL_TYPES.contains(type)) {
+                throw new BusinessException("使用了不支持的类型:" + type);
+            }
+        }
         return this;
     }
 
     public Param logContain(String key) {
-        mLogKey = key;
+        logKey = key;
         return this;
     }
 
     public Param logRegex(String regex) {
-        mLogRegex = regex;
+        logRegex = regex;
+        return this;
+    }
+
+    public Param enableIncompleteLogs(boolean enable) {
+        enableIncompleteLogs = enable;
         return this;
     }
 
@@ -141,11 +163,11 @@ public class Param extends StdParam {
         public int min;
         public int sec;
 
-        public static int toValue(int hour, int min, int sec) {
-            return hour * 60 + min * 60 + sec;
+        public static int toSecValue(int hour, int min, int sec) {
+            return toMinValue(hour, min) * 60 + sec;
         }
 
-        public static int toValue(int hour, int min) {
+        public static int toMinValue(int hour, int min) {
             return hour * 60 + min;
         }
 
@@ -169,7 +191,7 @@ public class Param extends StdParam {
         }
 
         public int toValue(boolean needSec) {
-            return needSec ? toValue(hour, min, sec) : toValue(hour, min);
+            return needSec ? toSecValue(hour, min, sec) : toMinValue(hour, min);
         }
     }
 }

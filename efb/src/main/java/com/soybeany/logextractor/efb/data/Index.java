@@ -20,10 +20,10 @@ public class Index extends StdIndex {
         int hour = Integer.parseInt(time.substring(9, 11));
         int min = Integer.parseInt(time.substring(12, 14));
         if (!needSec) {
-            return Param.Time.toValue(hour, min);
+            return Param.Time.toMinValue(hour, min);
         }
         int sec = Integer.parseInt(time.substring(15, 17));
-        return Param.Time.toValue(hour, min, sec);
+        return Param.Time.toSecValue(hour, min, sec);
     }
 
     @Override

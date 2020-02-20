@@ -3,7 +3,6 @@ package com.soybeany.logextractor.std.data;
 import com.soybeany.logextractor.std.data.flag.StdFlag;
 
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * <br>Created by Soybeany on 2020/2/4.
@@ -13,7 +12,7 @@ public class StdLog {
     public final String logId;
     public StdFlag startFlag;
     public StdFlag endFlag;
-    public final List<StdLine> lines = new LinkedList<StdLine>();
+    public final LinkedList<StdLine> lines = new LinkedList<StdLine>();
 
     public StdLog(String logId) {
         this.logId = logId;

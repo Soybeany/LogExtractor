@@ -5,7 +5,7 @@ package com.soybeany.logextractor.std.data;
  */
 public abstract class StdParam implements IStdParam, IStdFileLoaderParam, IStdLogAssemblerParam, IStdReporterParam {
 
-    public static final long DEFAULT_LOAD_SIZE_LIMIT = 100000000;
+    public static final long DEFAULT_QUERY_SIZE_LIMIT = 100000000; // 100M
     public static final int DEFAULT_MAX_LINE_OF_LOG_WITHOUT_START_FLAG = 100;
     public static final int DEFAULT_LOG_LIMIT = 30;
 
@@ -16,7 +16,7 @@ public abstract class StdParam implements IStdParam, IStdFileLoaderParam, IStdLo
 
     @Override
     public long getQuerySizeLimit() {
-        return DEFAULT_LOAD_SIZE_LIMIT;
+        return DEFAULT_QUERY_SIZE_LIMIT;
     }
 
     @Override
