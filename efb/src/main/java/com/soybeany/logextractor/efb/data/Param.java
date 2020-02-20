@@ -34,7 +34,7 @@ public class Param extends StdParam {
 
     @Override
     public File getFileToLoad() {
-        return new File(dir, getDateNotNull() + ".log");
+        return new File(dir, date + ".log");
     }
 
     @Override
@@ -52,12 +52,18 @@ public class Param extends StdParam {
         return querySizeLimit;
     }
 
-    // 信息获取
-    public String getDateNotNull() {
-        if (null != date) {
-            return date;
+    @Override
+    public void onCheckParams() {
+        // 检查日期
+        if (null == date) {
+            date = new SimpleDateFormat(FORMAT_DATE).format(new Date());
         }
-        return new SimpleDateFormat(FORMAT_DATE).format(new Date());
+        // 检查时间
+        if (null != fromTime && null != toTime) {
+            if (fromTime.toValue(true) > toTime.toValue(true)) {
+                throw new BusinessException("开始时间不能大于结束时间");
+            }
+        }
     }
 
     // ****************************************文件信息****************************************
