@@ -1,5 +1,7 @@
 package com.soybeany.logextractor.efb.data;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.soybeany.logextractor.efb.data.flag.RequestFlag;
 import com.soybeany.logextractor.efb.util.TypeChecker;
 import com.soybeany.logextractor.std.data.StdLine;
@@ -25,17 +27,23 @@ public class Result {
     // ****************************************内部方法****************************************
 
     private void addInfo(StdReport report) {
-        Info info = new Info();
-        info.expectCount = report.expectCount;
-        info.actualCount = report.actualCount;
-        info.noNextDataReason = report.noNextDataReason;
-        info.totalScan = report.totalScan;
-        info.newScan = report.newScan;
-        info.queryLoad = report.queryLoad;
-        info.lastDataId = report.lastDataId;
-        info.curDataId = report.curDataId;
-        info.nextDataId = report.nextDataId;
-        list.add(info);
+        LoadLength loadLength = new LoadLength();
+        loadLength.totalScan = report.totalScan;
+        loadLength.newScan = report.newScan;
+        loadLength.queryLoad = report.queryLoad;
+        list.add(loadLength);
+
+        Count count = new Count();
+        count.expectCount = report.expectCount;
+        count.actualCount = report.actualCount;
+        count.noNextDataReason = report.noNextDataReason;
+        list.add(count);
+
+        Id id = new Id();
+        id.lastDataId = report.lastDataId;
+        id.curDataId = report.curDataId;
+        id.nextDataId = report.nextDataId;
+        list.add(id);
     }
 
     private void addLogs(StdReport report) {
@@ -56,12 +64,12 @@ public class Result {
         // 通用属性
         String startTime = null, endTime = null;
         if (null != log.startFlag) {
-            requestLog.time = startTime = log.startFlag.info.time;
+            requestLog.visit = startTime = log.startFlag.info.time;
         }
         if (null != log.endFlag) {
             endTime = log.endFlag.info.time;
-            if (null == requestLog.time) {
-                requestLog.time = endTime + "(结束)";
+            if (null == requestLog.visit) {
+                requestLog.visit = endTime + "(结束)";
             }
         }
         requestLog.calculateSpend(startTime, endTime);
@@ -77,15 +85,19 @@ public class Result {
 
     // ****************************************内部类****************************************
 
-    public static class Info {
-        public int expectCount;
-        public int actualCount;
-        public String noNextDataReason;
-
+    public static class LoadLength {
         public Long totalScan;
         public Long newScan;
         public Long queryLoad;
+    }
 
+    public static class Count {
+        public int expectCount;
+        public int actualCount;
+        public String noNextDataReason;
+    }
+
+    public static class Id {
         public String lastDataId;
         public String curDataId;
         public String nextDataId;
@@ -94,9 +106,10 @@ public class Result {
     public static class Log {
         private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yy-MM-dd hh:mm:ss");
 
-        public String time;
+        public String visit;
         public String spend;
         public String thread;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public String msg;
         public List<String> logs;
 
@@ -131,6 +144,7 @@ public class Result {
         }
     }
 
+    @JsonPropertyOrder({"visit", "spend", "url", "param", "user", "thread", "msg", "logs"})
     public static class RequestLog extends Log {
         public String url;
         public String param;

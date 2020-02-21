@@ -1,6 +1,7 @@
 package query;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soybeany.logextractor.core.center.MemStorageCenter;
 import com.soybeany.logextractor.efb.data.Data;
 import com.soybeany.logextractor.efb.data.Index;
@@ -52,7 +53,12 @@ class QueryManagerTest {
     }
 
     private void printReport(StdReport report) {
-        String json = new Gson().toJson(new Result(report).list);
+        String json;
+        try {
+            json = new ObjectMapper().writeValueAsString(new Result(report).list);
+        } catch (JsonProcessingException e) {
+            json = "转化异常";
+        }
         System.out.println(json);
     }
 
