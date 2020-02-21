@@ -28,8 +28,8 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
     private IIdGenerator mIdGenerator = new UUIDGenerator();
 
-    private ScanManager<Param, Index, Line, Flag, Data> mScanManager;
-    private QueryManager<Param, Index, Line, Flag, Log, Report, Data> mQueryManager;
+    protected ScanManager<Param, Index, Line, Flag, Data> mScanManager;
+    protected QueryManager<Param, Index, Line, Flag, Log, Report, Data> mQueryManager;
 
     private BaseStorageCenter<Index> mIndexStorageCenter;
     private IInstanceFactory<Data> mDataInstanceFactory;

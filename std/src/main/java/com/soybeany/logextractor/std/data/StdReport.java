@@ -15,6 +15,9 @@ public class StdReport {
     public Long newScan;
     public Long queryLoad;
 
+    public Long scanSpend;
+    public Long querySpend;
+
     public String lastDataId;
     public String curDataId;
     public String nextDataId;

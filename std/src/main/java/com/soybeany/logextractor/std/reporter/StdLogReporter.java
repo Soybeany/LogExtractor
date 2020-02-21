@@ -4,10 +4,7 @@ import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.query.BaseLogReporter;
 import com.soybeany.logextractor.sfile.data.IRenewalData;
 import com.soybeany.logextractor.sfile.data.SFileRange;
-import com.soybeany.logextractor.std.data.IStdFileLoaderData;
-import com.soybeany.logextractor.std.data.IStdReporterParam;
-import com.soybeany.logextractor.std.data.StdLog;
-import com.soybeany.logextractor.std.data.StdReport;
+import com.soybeany.logextractor.std.data.*;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -17,7 +14,7 @@ import static com.soybeany.logextractor.sfile.data.IRenewalData.*;
 /**
  * <br>Created by Soybeany on 2020/2/7.
  */
-public class StdLogReporter<Param extends IStdReporterParam, Report extends StdReport, Data extends IStdFileLoaderData & IRenewalData> extends BaseLogReporter<Param, StdLog, Report, Data> {
+public class StdLogReporter<Param extends IStdReporterParam, Report extends StdReport, Data extends IStdFileLoaderData & IRenewalData & IStdTimingData> extends BaseLogReporter<Param, StdLog, Report, Data> {
 
     private Class<Report> mReportClazz;
 
@@ -62,6 +59,8 @@ public class StdLogReporter<Param extends IStdReporterParam, Report extends StdR
         report.lastDataId = mData.getLastDataId();
         report.curDataId = mData.getCurDataId();
         report.nextDataId = mData.getNextDataId();
+        report.scanSpend = mData.getScanSpend();
+        report.querySpend = mData.getQuerySpend();
         report.queryLoad = mData.getQueryLoad();
         SFileRange scanRange = mData.getScanRange();
         if (null != scanRange) {

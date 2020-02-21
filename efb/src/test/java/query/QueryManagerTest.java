@@ -29,6 +29,8 @@ class QueryManagerTest {
 
     @Test
     public void testLog() {
+        Param param = new Param().date("20-01-17").types("管理端|客户端").url("query")
+                .fromTime("11:01:57").toTime("11:03:01");
         StdLogExtractor<Param, Index, StdReport, Data> manager = new StdLogExtractor<Param, Index, StdReport, Data>(Data.class, Index.class);
         manager.setIdGenerator(new SFileLogExtractor.SimpleIdGenerator());
         manager.setIndexStorageCenter(new MemStorageCenter<Index>());
@@ -40,22 +42,22 @@ class QueryManagerTest {
         manager.setLogAssembler(new StdLogAssembler<Param, Data>());
         manager.setReporter(new StdLogReporter<Param, StdReport, Data>(StdReport.class));
         manager.setFilterFactory(new FilterFactory());
-        StdReport report = manager.find(new Param().date("20-01-17").types("管理端|客户端").url("query").fromTime("11:01:57").toTime("11:03:01"));
-        printReport(report);
+        StdReport report = manager.find(param);
+        printReport(param, report);
         String reportId;
         long query = report.queryLoad;
         while (null != (reportId = report.nextDataId)) {
             report = manager.findById(reportId);
             query += report.queryLoad;
-            printReport(report);
+            printReport(param, report);
         }
         System.out.println("totalQuery:" + query + " and count:" + mNo);
     }
 
-    private void printReport(StdReport report) {
+    private void printReport(Param param, StdReport report) {
         String json;
         try {
-            json = new ObjectMapper().writeValueAsString(new Result(report).list);
+            json = new ObjectMapper().writeValueAsString(new Result(param, report).list);
         } catch (JsonProcessingException e) {
             json = "转化异常";
         }

@@ -1,7 +1,10 @@
 package com.soybeany.logextractor.std;
 
+import com.soybeany.logextractor.core.common.BaseModule;
 import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.common.IInstanceFactory;
+import com.soybeany.logextractor.core.query.IQueryListener;
+import com.soybeany.logextractor.core.scan.IScanListener;
 import com.soybeany.logextractor.sfile.SFileLogExtractor;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
@@ -11,6 +14,7 @@ import com.soybeany.logextractor.std.data.StdData;
 import com.soybeany.logextractor.std.data.StdLine;
 import com.soybeany.logextractor.std.data.StdLog;
 import com.soybeany.logextractor.std.data.flag.StdFlag;
+import com.soybeany.logextractor.std.reporter.StdLogReporter;
 
 /**
  * 标准日志提取器
@@ -25,6 +29,9 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
 
     public StdLogExtractor(IInstanceFactory<Data> dataFactory, IInstanceFactory<Index> indexFactory) {
         super(dataFactory, indexFactory);
+        TimingModule module = new TimingModule();
+        mScanManager.addModule(module);
+        mQueryManager.addModule(module);
     }
 
     // ****************************************设置方法****************************************
@@ -62,6 +69,37 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
             } catch (Exception e) {
                 throw new BusinessException("无法创建新的数据实例:" + e.getMessage());
             }
+        }
+    }
+
+    private class TimingModule extends BaseModule<Param, Data> implements IScanListener, IQueryListener {
+
+        private long mStartTime = System.currentTimeMillis();
+        private Data mData;
+
+        @Override
+        public int getCallbackSeq() {
+            return StdLogReporter.CALLBACK_SEQ - 1;
+        }
+
+        @Override
+        public void onStart(Param param, Data data) throws Exception {
+            super.onStart(param, data);
+            mData = data;
+        }
+
+        @Override
+        public void onScanFinish() {
+            mData.setScanSpend(getSpend());
+        }
+
+        @Override
+        public void onReadyToGenerateReport() {
+            mData.setQuerySpend(getSpend());
+        }
+
+        private long getSpend() {
+            return System.currentTimeMillis() - mStartTime;
         }
     }
 

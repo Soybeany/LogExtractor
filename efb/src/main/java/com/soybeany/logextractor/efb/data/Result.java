@@ -18,8 +18,18 @@ import java.util.List;
 public class Result {
 
     public final List<Object> list = new LinkedList<Object>();
+    private Param mParam;
 
-    public Result(StdReport report) {
+    private static String millsToSec(long mills) {
+        int sec = (int) (mills / 1000);
+        if (0 == sec) {
+            return "<1s";
+        }
+        return sec + "s";
+    }
+
+    public Result(Param param, StdReport report) {
+        mParam = param;
         addInfo(report);
         addLogs(report);
     }
@@ -27,18 +37,24 @@ public class Result {
     // ****************************************内部方法****************************************
 
     private void addInfo(StdReport report) {
-        LoadLength loadLength = new LoadLength();
-        loadLength.totalScan = report.totalScan;
-        loadLength.newScan = report.newScan;
-        loadLength.queryLoad = report.queryLoad;
-        list.add(loadLength);
+        if (!mParam.hideUnimportantInfo) {
+            LoadLength loadLength = new LoadLength();
+            loadLength.totalScan = report.totalScan;
+            loadLength.newScan = report.newScan;
+            loadLength.queryLoad = report.queryLoad;
+            list.add(loadLength);
 
-        Count count = new Count();
-        count.expectCount = report.expectCount;
-        count.actualCount = report.actualCount;
-        count.noNextDataReason = report.noNextDataReason;
-        list.add(count);
+            Count count = new Count();
+            count.expectCount = report.expectCount;
+            count.actualCount = report.actualCount;
+            count.noNextDataReason = report.noNextDataReason;
+            list.add(count);
 
+            Spend spend = new Spend();
+            spend.scanSpend = Spend.toString("扫描", report.scanSpend);
+            spend.querySpend = Spend.toString("查询", report.querySpend);
+            list.add(spend);
+        }
         Id id = new Id();
         id.lastDataId = report.lastDataId;
         id.curDataId = report.curDataId;
@@ -97,6 +113,18 @@ public class Result {
         public String noNextDataReason;
     }
 
+    public static class Spend {
+        public String scanSpend;
+        public String querySpend;
+
+        public static String toString(String desc, Long spend) {
+            if (null == spend) {
+                return "没有执行" + desc + "操作";
+            }
+            return millsToSec(spend);
+        }
+    }
+
     public static class Id {
         public String lastDataId;
         public String curDataId;
@@ -119,12 +147,7 @@ public class Result {
                 return;
             }
             try {
-                int sec = (int) ((DATE_FORMAT.parse(endTime).getTime() - DATE_FORMAT.parse(startTime).getTime()) / 1000);
-                if (0 == sec) {
-                    spend = "<1s";
-                } else {
-                    spend = sec + "s";
-                }
+                spend = millsToSec(DATE_FORMAT.parse(endTime).getTime() - DATE_FORMAT.parse(startTime).getTime());
             } catch (Exception e) {
                 spend = "未知(时间解析异常)";
             }

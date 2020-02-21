@@ -35,6 +35,8 @@ public class Param extends StdParam {
     public int logLimit = StdParam.DEFAULT_LOG_LIMIT;
     public long querySizeLimit = StdParam.DEFAULT_QUERY_SIZE_LIMIT;
 
+    public boolean hideUnimportantInfo;
+
     @Override
     public File getFileToLoad() {
         File file = new File(dir, date + ".log");
@@ -159,6 +161,13 @@ public class Param extends StdParam {
 
     public Param querySizeLimit(long limit) {
         querySizeLimit = limit;
+        return this;
+    }
+
+    // ****************************************生成结果****************************************
+
+    public Param hideUnimportantInfo(boolean flag) {
+        hideUnimportantInfo = flag;
         return this;
     }
 
