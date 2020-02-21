@@ -33,6 +33,7 @@ public class Param extends StdParam {
     public Boolean enableIncompleteLogs;
 
     public int logLimit = StdParam.DEFAULT_LOG_LIMIT;
+    public int maxLineOfLogWithoutStartFlag = StdParam.DEFAULT_MAX_LINE_OF_LOG_WITHOUT_START_FLAG;
     public long querySizeLimit = StdParam.DEFAULT_QUERY_SIZE_LIMIT;
 
     public boolean hideUnimportantInfo;
@@ -52,13 +53,18 @@ public class Param extends StdParam {
     }
 
     @Override
-    public int getLogLimit() {
-        return logLimit;
+    public long getQuerySizeLimit() {
+        return querySizeLimit;
     }
 
     @Override
-    public long getQuerySizeLimit() {
-        return querySizeLimit;
+    public int getMaxLineOfLogWithoutStartFlag() {
+        return maxLineOfLogWithoutStartFlag;
+    }
+
+    @Override
+    public int getLogLimit() {
+        return logLimit;
     }
 
     @Override
@@ -154,13 +160,18 @@ public class Param extends StdParam {
 
     // ****************************************查询范围****************************************
 
-    public Param logLimit(int limit) {
-        logLimit = limit;
+    public Param querySizeLimit(long limit) {
+        querySizeLimit = limit;
         return this;
     }
 
-    public Param querySizeLimit(long limit) {
-        querySizeLimit = limit;
+    public Param maxLineOfLogWithoutStartFlag(int maxLine) {
+        maxLineOfLogWithoutStartFlag = maxLine;
+        return this;
+    }
+
+    public Param logLimit(int limit) {
+        logLimit = limit;
         return this;
     }
 

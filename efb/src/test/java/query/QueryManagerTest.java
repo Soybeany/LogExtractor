@@ -29,8 +29,9 @@ class QueryManagerTest {
 
     @Test
     public void testLog() {
-        Param param = new Param().date("20-01-17").types("管理端|客户端").url("query")
-                .fromTime("11:01:57").toTime("11:03:01");
+//        Param param = new Param().date("20-01-17").types("管理端|客户端").url("query")
+//                .fromTime("11:01:57").toTime("11:03:01");
+        Param param = new Param().date("20-01-17").logContainKey("未能在目录").maxLineOfLogWithoutStartFlag(10);
         StdLogExtractor<Param, Index, StdReport, Data> manager = new StdLogExtractor<Param, Index, StdReport, Data>(Data.class, Index.class);
         manager.setIdGenerator(new SFileLogExtractor.SimpleIdGenerator());
         manager.setIndexStorageCenter(new MemStorageCenter<Index>());

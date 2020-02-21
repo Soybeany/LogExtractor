@@ -68,35 +68,11 @@ public class Result {
         }
         for (StdLog log : report.logs) {
             if (TypeChecker.isRequest(log.getType())) {
-                list.add(getRequestLog(log));
+                list.add(new RequestLog(log));
             } else {
-                list.add(new NotSupportLog());
+                list.add(new DefaultLog(log));
             }
         }
-    }
-
-    private RequestLog getRequestLog(StdLog log) {
-        RequestLog requestLog = new RequestLog();
-        // 通用属性
-        String startTime = null, endTime = null;
-        if (null != log.startFlag) {
-            requestLog.visit = startTime = log.startFlag.info.time;
-        }
-        if (null != log.endFlag) {
-            endTime = log.endFlag.info.time;
-            if (null == requestLog.visit) {
-                requestLog.visit = endTime + "(结束)";
-            }
-        }
-        requestLog.calculateSpend(startTime, endTime);
-        requestLog.thread = log.logId;
-        // 请求属性
-        RequestFlag flag = (RequestFlag) log.getFlag();
-        requestLog.url = flag.url;
-        requestLog.param = flag.param;
-        requestLog.user = flag.userNo;
-        requestLog.linesToLogs(log.lines);
-        return requestLog;
     }
 
     // ****************************************内部类****************************************
@@ -134,7 +110,9 @@ public class Result {
     public static class Log {
         private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yy-MM-dd hh:mm:ss");
 
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public String visit;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public String spend;
         public String thread;
         @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -161,9 +139,14 @@ public class Result {
         }
     }
 
-    public static class NotSupportLog extends Log {
+    public static class DefaultLog extends Log {
         {
-            msg = "未支持的日志";
+            msg = "无法分类的日志";
+        }
+
+        public DefaultLog(StdLog log) {
+            thread = log.logId;
+            linesToLogs(log.lines);
         }
     }
 
@@ -172,6 +155,41 @@ public class Result {
         public String url;
         public String param;
         public String user;
+
+        public RequestLog(StdLog log) {
+            // 通用属性
+            setupTime(log);
+            thread = log.logId;
+            setupMsg(log);
+            linesToLogs(log.lines);
+            // 请求属性
+            RequestFlag flag = (RequestFlag) log.getFlag();
+            url = flag.url;
+            param = flag.param;
+            user = flag.userNo;
+        }
+
+        private void setupTime(StdLog log) {
+            String startTime = null, endTime = null;
+            if (null != log.startFlag) {
+                visit = startTime = log.startFlag.info.time;
+            }
+            if (null != log.endFlag) {
+                endTime = log.endFlag.info.time;
+                if (null == visit) {
+                    visit = endTime + "(结束)";
+                }
+            }
+            calculateSpend(startTime, endTime);
+        }
+
+        private void setupMsg(StdLog log) {
+            if (null == log.startFlag) {
+                msg = "缺失开始标签";
+            } else if (null == log.endFlag) {
+                msg = "缺失结束标签";
+            }
+        }
     }
 
     public static class TimerLog extends Log {

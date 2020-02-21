@@ -40,7 +40,7 @@ public class StdLogAssembler<Param extends IStdLogAssemblerParam, Data extends I
         String logId = line.info.getLogId();
         StdLog log = mLogMap.get(logId);
         if (null == log) {
-            log = new StdLog(logId);
+            mLogMap.put(logId, log = new StdLog(logId));
         }
         log.lines.add(line);
         // 若是无开始标识的日志，且日志行数已超出设定，则弹出
