@@ -14,7 +14,7 @@ public class UserNoFilter extends BaseKeyIgnoreCaseFilter {
 
     @Override
     protected String getSource2(StdLog stdLog) {
-        return ((RequestFlag) stdLog.startFlag).userNo;
+        return ((RequestFlag) stdLog.getFlag()).userNo;
     }
 
     @Override

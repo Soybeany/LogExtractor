@@ -4,6 +4,7 @@ import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.data.BaseData;
 
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 子类必须重写{@link #beNextDataOf}方法，设置新增的字段
@@ -21,6 +22,8 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
      */
     public Param param;
 
+    private final ReentrantLock mLock = new ReentrantLock();
+
     private String mLastId;
     private String mCurId;
     private String mNextId;
@@ -31,6 +34,11 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     private final SFileRange mNeedLoadRange = SFileRange.max();
     private List<SFileRange> mExpectLoadRanges;
     private List<SFileRange> mActLoadRanges;
+
+    @Override
+    public ReentrantLock getLock() {
+        return mLock;
+    }
 
     @Override
     public String getLastDataId() {

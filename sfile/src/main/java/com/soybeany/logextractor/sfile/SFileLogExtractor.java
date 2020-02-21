@@ -7,6 +7,7 @@ import com.soybeany.logextractor.core.query.parser.BaseLineParser;
 import com.soybeany.logextractor.core.scan.BaseIndexCreator;
 import com.soybeany.logextractor.core.scan.BaseIndexCreatorFactory;
 import com.soybeany.logextractor.core.scan.ScanManager;
+import com.soybeany.logextractor.core.tool.SimpleUniqueLock;
 import com.soybeany.logextractor.sfile.data.*;
 import com.soybeany.logextractor.sfile.handler.ISFileIndexHandler;
 import com.soybeany.logextractor.sfile.handler.SFileIndexHandlerFactory;
@@ -102,13 +103,13 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
     /**
      * 数据源查找，使用指定的数据(全新查)
      */
-    public Report find(Param param) {
+    public Report find(Param param) throws InterruptedException {
         ToolUtils.checkNull(param, "param不能为null");
         // 获取数据
         Data data = getData(mIdGenerator.getNewId());
         data.param = param;
         // 更新索引
-        mScanManager.createIndexes(param, data);
+        mScanManager.createOrUpdateIndexes(param, data);
         // 执行查找
         Report report = mQueryManager.find(param, data);
         // 记录报告
@@ -119,14 +120,19 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
     /**
      * 先从报告集中查询，若没有则从数据源查找(断点续查)
      */
-    public Report findById(String dataId) {
+    public Report findById(String dataId) throws InterruptedException {
         ToolUtils.checkNull(dataId, "DataId不能为null");
         Data data = getData(dataId);
-        Report report = data.report;
-        if (null == report) {
-            report = mQueryManager.find(data.param, data);
+        try {
+            SimpleUniqueLock.tryAttain(data.getLock(), data.param.getTryLockTimeoutSec());
+            Report report = data.report;
+            if (null == report) {
+                report = mQueryManager.find(data.param, data);
+            }
+            return report;
+        } finally {
+            SimpleUniqueLock.release(data.getLock());
         }
-        return report;
     }
 
     // ****************************************内部方法****************************************

@@ -4,8 +4,9 @@ import com.soybeany.logextractor.core.common.BaseManager;
 import com.soybeany.logextractor.core.common.BaseModule;
 import com.soybeany.logextractor.core.common.IInstanceFactory;
 import com.soybeany.logextractor.core.data.BaseData;
+import com.soybeany.logextractor.core.data.IBaseParam;
 import com.soybeany.logextractor.core.data.ICopiableIndex;
-import com.soybeany.logextractor.core.data.IIndexIdProvider;
+import com.soybeany.logextractor.core.tool.SimpleUniqueLock;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -15,7 +16,7 @@ import java.util.List;
  * 定义查询流程
  * <br>Created by Soybeany on 2020/2/4.
  */
-public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiableIndex, Line, Flag, Log, Report, Data extends BaseData<Index>> extends BaseManager<Param, Index, Line, Flag, Data> {
+public class QueryManager<Param extends IBaseParam, Index extends ICopiableIndex, Line, Flag, Log, Report, Data extends BaseData<Index>> extends BaseManager<Param, Index, Line, Flag, Data> {
 
     public static final String PURPOSE = "整理";
 
@@ -49,11 +50,12 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
     /**
      * 数据源查找
      */
-    public Report find(Param param, Data data) {
+    public Report find(Param param, Data data) throws InterruptedException {
         // 检查模块
         setAndCheckModules(Arrays.asList(mLogAssembler, getNonNullFilterFactory(), mReporter));
         // 加载
         try {
+            SimpleUniqueLock.tryAttain(data.getLock(), param.getTryLockTimeoutSec());
             start(PURPOSE, param, data, getIndexFromData(param, data));
             Callback callback = new Callback();
             while (mReporter.needMoreLog()) {
@@ -71,7 +73,11 @@ public class QueryManager<Param extends IIndexIdProvider, Index extends ICopiabl
             // 生成报告
             return mReporter.getNewReport();
         } finally {
-            finish();
+            try {
+                finish();
+            } finally {
+                SimpleUniqueLock.release(data.getLock());
+            }
         }
     }
 

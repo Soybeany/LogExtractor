@@ -1,4 +1,4 @@
-package com.soybeany.logextractor.core.center;
+package com.soybeany.logextractor.core.tool;
 
 import com.soybeany.logextractor.core.common.BusinessException;
 
@@ -48,6 +48,11 @@ public class SimpleLruStorage<Key, Value> {
     public synchronized void put(Key key, Value value) {
         trimSize();
         mMap.put(key, value);
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    public synchronized Value remove(Key key) {
+        return mMap.remove(key);
     }
 
     public synchronized void clear() {

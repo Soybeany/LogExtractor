@@ -28,7 +28,7 @@ class QueryManagerTest {
     private int mNo;
 
     @Test
-    public void testLog() {
+    public void testLog() throws Exception {
 //        Param param = new Param().date("20-01-17").types("管理端|客户端").url("query")
 //                .fromTime("11:01:57").toTime("11:03:01");
         Param param = new Param().date("20-01-17").logContainKey("未能在目录").maxLineOfLogWithoutStartFlag(10);

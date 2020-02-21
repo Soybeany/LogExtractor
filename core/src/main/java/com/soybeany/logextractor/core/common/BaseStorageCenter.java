@@ -7,8 +7,6 @@ public abstract class BaseStorageCenter<T> {
 
     public abstract T load(String id);
 
-    public abstract void save(String id, T data);
-
     public abstract T loadAndSaveIfNotExist(String id, IInstanceFactory<T> factory);
 
 }

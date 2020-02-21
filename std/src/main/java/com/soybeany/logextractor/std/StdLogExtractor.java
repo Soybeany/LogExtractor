@@ -1,8 +1,6 @@
 package com.soybeany.logextractor.std;
 
-import com.soybeany.logextractor.core.common.BaseModule;
-import com.soybeany.logextractor.core.common.BusinessException;
-import com.soybeany.logextractor.core.common.IInstanceFactory;
+import com.soybeany.logextractor.core.common.*;
 import com.soybeany.logextractor.core.query.IQueryListener;
 import com.soybeany.logextractor.core.scan.IScanListener;
 import com.soybeany.logextractor.sfile.SFileLogExtractor;
@@ -16,12 +14,23 @@ import com.soybeany.logextractor.std.data.StdLog;
 import com.soybeany.logextractor.std.data.flag.StdFlag;
 import com.soybeany.logextractor.std.reporter.StdLogReporter;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 /**
  * 标准日志提取器
+ * <br>超时自动删除Index、Data缓存 // todo 待完成
  * <br>提供标准的报告内容
  * <br>Created by Soybeany on 2020/2/8.
  */
 public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex, Report, Data extends StdData<Param, Index, Report>> extends SFileLogExtractor<Param, Index, StdLine, StdFlag, StdLog, Report, Data> {
+
+    private static final ScheduledExecutorService SERVICE = Executors.newSingleThreadScheduledExecutor();
+
+    private IInstanceFactory<Index> mIndexFactory;
+    private BaseStorageCenter<Index> mIndexStorageCenter;
+
+    private final TimingModule mTimingModule = new TimingModule();
 
     public StdLogExtractor(Class<Data> dataClass, Class<Index> indexClass) {
         this(new DefaultInstanceFactory<Data>(dataClass), new DefaultInstanceFactory<Index>(indexClass));
@@ -29,12 +38,30 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
 
     public StdLogExtractor(IInstanceFactory<Data> dataFactory, IInstanceFactory<Index> indexFactory) {
         super(dataFactory, indexFactory);
-        TimingModule module = new TimingModule();
-        mScanManager.addModule(module);
-        mQueryManager.addModule(module);
+        mIndexFactory = indexFactory;
+
+        mScanManager.addModule(mTimingModule);
+        mQueryManager.addModule(mTimingModule);
     }
 
     // ****************************************设置方法****************************************
+
+    @Override
+    public void setIndexStorageCenter(BaseStorageCenter<Index> center) {
+//        if (!(center instanceof IStdStorageCenter)) {
+//            throw new BusinessException("center请实现IStdStorageCenter接口");
+//        }
+        super.setIndexStorageCenter(center);
+        mIndexStorageCenter = center;
+    }
+
+    @Override
+    public void setDataStorageCenter(BaseStorageCenter<Data> center) {
+//        if (!(center instanceof IStdStorageCenter)) {
+//            throw new BusinessException("center请实现IStdStorageCenter接口");
+//        }
+        super.setDataStorageCenter(center);
+    }
 
     @Override
     public void setLoader(SingleFileLoader<Param, Index, Data> loader) {
@@ -44,14 +71,29 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
         super.setLoader(loader);
     }
 
+    // ****************************************输出API****************************************
+
+    public Index getIndex(String indexId) {
+        ToolUtils.checkNull(mIndexStorageCenter, "IndexStorageCenter未设置");
+        Index newIndex = mIndexFactory.getNew();
+        newIndex.copy(mIndexStorageCenter.load(indexId));
+        return newIndex;
+    }
+
     // ****************************************子类重写****************************************
 
     @Override
-    public Report find(Param param) {
+    public Report find(Param param) throws InterruptedException {
         param.onCheckParams();
+        mTimingModule.startRecord();
         return super.find(param);
     }
 
+    @Override
+    public Report findById(String dataId) throws InterruptedException {
+        mTimingModule.startRecord();
+        return super.findById(dataId);
+    }
 
     // ****************************************内部类****************************************
 
@@ -74,7 +116,7 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
 
     private class TimingModule extends BaseModule<Param, Data> implements IScanListener, IQueryListener {
 
-        private long mStartTime = System.currentTimeMillis();
+        private long mStartTime;
         private Data mData;
 
         @Override
@@ -96,6 +138,10 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
         @Override
         public void onReadyToGenerateReport() {
             mData.setQuerySpend(getSpend());
+        }
+
+        public void startRecord() {
+            mStartTime = System.currentTimeMillis();
         }
 
         private long getSpend() {

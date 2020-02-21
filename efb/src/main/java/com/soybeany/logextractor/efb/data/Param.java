@@ -32,9 +32,11 @@ public class Param extends StdParam {
     public String logContainRegex;
     public Boolean enableIncompleteLogs;
 
-    public int logLimit = StdParam.DEFAULT_LOG_LIMIT;
-    public int maxLineOfLogWithoutStartFlag = StdParam.DEFAULT_MAX_LINE_OF_LOG_WITHOUT_START_FLAG;
     public long querySizeLimit = StdParam.DEFAULT_QUERY_SIZE_LIMIT;
+    public int maxLineOfLogWithoutStartFlag = StdParam.DEFAULT_MAX_LINE_OF_LOG_WITHOUT_START_FLAG;
+    public int logLimit = StdParam.DEFAULT_LOG_LIMIT;
+
+    public int tryLockTimeoutSec = Integer.MAX_VALUE;
 
     public boolean hideUnimportantInfo;
 
@@ -68,6 +70,11 @@ public class Param extends StdParam {
     }
 
     @Override
+    public int getTryLockTimeoutSec() {
+        return tryLockTimeoutSec;
+    }
+
+    @Override
     public void onCheckParams() {
         // 检查日期
         if (null == date) {
@@ -90,6 +97,13 @@ public class Param extends StdParam {
 
     public Param date(String date) {
         this.date = date;
+        return this;
+    }
+
+    // ****************************************锁****************************************
+
+    public Param tryLockTimeoutSec(int sec) {
+        tryLockTimeoutSec = sec;
         return this;
     }
 

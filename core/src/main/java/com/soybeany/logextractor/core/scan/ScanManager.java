@@ -1,11 +1,12 @@
 package com.soybeany.logextractor.core.scan;
 
-import com.soybeany.logextractor.core.center.SimpleUniqueLock;
 import com.soybeany.logextractor.core.common.BaseManager;
 import com.soybeany.logextractor.core.common.BaseModule;
 import com.soybeany.logextractor.core.common.IInstanceFactory;
-import com.soybeany.logextractor.core.data.IIndexIdProvider;
+import com.soybeany.logextractor.core.data.IBaseParam;
+import com.soybeany.logextractor.core.data.ILockProvider;
 import com.soybeany.logextractor.core.query.IQueryListener;
+import com.soybeany.logextractor.core.tool.SimpleUniqueLock;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.List;
  * 定义扫描流程
  * <br>Created by Soybeany on 2020/2/5.
  */
-public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data> extends BaseManager<Param, Index, Line, Flag, Data> {
+public class ScanManager<Param extends IBaseParam, Index extends ILockProvider, Line, Flag, Data> extends BaseManager<Param, Index, Line, Flag, Data> {
 
     public static final String PURPOSE = "索引";
 
@@ -32,16 +33,15 @@ public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data
 
     // ****************************************输出API****************************************
 
-    public void createIndexes(Param param, Data data) {
+    public void createOrUpdateIndexes(Param param, Data data) throws InterruptedException {
         // 检查模块
         setAndCheckModules(Collections.<BaseModule<Param, Data>>singletonList(getNonNullIndexCreatorFactory()));
         // 加载
         Index index = null;
-        String lockId = hashCode() + "";
         try {
             index = getIndexFromStorageCenter(param.getIndexId());
+            SimpleUniqueLock.tryAttain(index.getLock(), param.getTryLockTimeoutSec());
             start(PURPOSE, param, data, index);
-            SimpleUniqueLock.tryAttain(lockId, index, "索引正在创建，请稍后");
             extractLogs(new Callback(index));
             // 执行回调
             for (BaseModule<Param, Data> module : mModules) {
@@ -50,8 +50,13 @@ public class ScanManager<Param extends IIndexIdProvider, Index, Line, Flag, Data
                 }
             }
         } finally {
-            SimpleUniqueLock.release(lockId, index);
-            finish();
+            try {
+                finish();
+            } finally {
+                if (null != index) {
+                    SimpleUniqueLock.release(index.getLock());
+                }
+            }
         }
     }
 

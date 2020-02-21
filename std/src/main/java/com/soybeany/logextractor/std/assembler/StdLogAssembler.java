@@ -1,6 +1,5 @@
 package com.soybeany.logextractor.std.assembler;
 
-import com.soybeany.logextractor.core.center.SimpleUniqueLock;
 import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.core.query.BaseLogAssembler;
 import com.soybeany.logextractor.sfile.data.IRenewalData;
@@ -26,13 +25,6 @@ public class StdLogAssembler<Param extends IStdLogAssemblerParam, Data extends I
         super.onStart(param, data);
         mLogMap = data.getLogStorage();
         mMaxLineOfLogWithoutStartFlag = param.getMaxLineOfLogWithoutStartFlag();
-        SimpleUniqueLock.tryAttain(hashCode() + "", mLogMap, "日志正在生成，请稍后");
-    }
-
-    @Override
-    public void onFinish() throws Exception {
-        super.onFinish();
-        SimpleUniqueLock.release(hashCode() + "", mLogMap);
     }
 
     @Override

@@ -15,7 +15,7 @@ public class UrlFilter extends BaseKeyIgnoreCaseFilter {
 
     @Override
     protected String getSource2(StdLog stdLog) {
-        return ((RequestFlag) stdLog.startFlag).url;
+        return ((RequestFlag) stdLog.getFlag()).url;
     }
 
     @Override
