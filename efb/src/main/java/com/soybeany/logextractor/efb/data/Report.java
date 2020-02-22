@@ -15,10 +15,7 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/20.
  */
-public class Result {
-
-    public final List<Object> list = new LinkedList<Object>();
-    private Param mParam;
+public class Report extends StdReport {
 
     private static String millsToSec(long mills) {
         int sec = (int) (mills / 1000);
@@ -28,45 +25,46 @@ public class Result {
         return sec + "s";
     }
 
-    public Result(Param param, StdReport report) {
-        mParam = param;
-        addInfo(report);
-        addLogs(report);
+    public List<Object> getInfoList(Param param) {
+        List<Object> list = new LinkedList<Object>();
+        addInfo(param, list);
+        addLogs(list);
+        return list;
     }
 
     // ****************************************内部方法****************************************
 
-    private void addInfo(StdReport report) {
-        if (!mParam.hideUnimportantInfo) {
+    private void addInfo(Param param, List<Object> list) {
+        if (!param.hideUnimportantInfo) {
             LoadLength loadLength = new LoadLength();
-            loadLength.totalScan = report.totalScan;
-            loadLength.newScan = report.newScan;
-            loadLength.queryLoad = report.queryLoad;
+            loadLength.totalScan = totalScan;
+            loadLength.newScan = newScan;
+            loadLength.queryLoad = queryLoad;
             list.add(loadLength);
 
             Count count = new Count();
-            count.expectCount = report.expectCount;
-            count.actualCount = report.actualCount;
-            count.noNextDataReason = report.noNextDataReason;
+            count.expectCount = expectCount;
+            count.actualCount = actualCount;
+            count.noNextDataReason = noNextDataReason;
             list.add(count);
 
             Spend spend = new Spend();
-            spend.scanSpend = Spend.toString("扫描", report.scanSpend);
-            spend.querySpend = Spend.toString("查询", report.querySpend);
+            spend.scanSpend = Spend.toString("扫描", scanSpend);
+            spend.querySpend = Spend.toString("查询", querySpend);
             list.add(spend);
         }
         Id id = new Id();
-        id.lastDataId = report.lastDataId;
-        id.curDataId = report.curDataId;
-        id.nextDataId = report.nextDataId;
+        id.lastDataId = lastDataId;
+        id.curDataId = curDataId;
+        id.nextDataId = nextDataId;
         list.add(id);
     }
 
-    private void addLogs(StdReport report) {
-        if (null == report.logs) {
+    private void addLogs(List<Object> list) {
+        if (null == logs) {
             return;
         }
-        for (StdLog log : report.logs) {
+        for (StdLog log : logs) {
             if (TypeChecker.isRequest(log.getType())) {
                 list.add(new RequestLog(log));
             } else {

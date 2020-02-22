@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soybeany.logextractor.efb.data.Data;
 import com.soybeany.logextractor.efb.data.Index;
 import com.soybeany.logextractor.efb.data.Param;
-import com.soybeany.logextractor.efb.data.Result;
+import com.soybeany.logextractor.efb.data.Report;
 import com.soybeany.logextractor.efb.filter.FilterFactory;
 import com.soybeany.logextractor.efb.handler.IndexHandlerFactory;
 import com.soybeany.logextractor.efb.parser.FlagParser;
@@ -15,7 +15,6 @@ import com.soybeany.logextractor.std.Loader.StdFileLoader;
 import com.soybeany.logextractor.std.StdLogExtractor;
 import com.soybeany.logextractor.std.assembler.StdLogAssembler;
 import com.soybeany.logextractor.std.center.StdStorageCenter;
-import com.soybeany.logextractor.std.data.StdReport;
 import com.soybeany.logextractor.std.reporter.StdLogReporter;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +30,7 @@ class QueryManagerTest {
         Param param = new Param().date("2020-01-17").types("管理端|客户端").url("query")
                 .fromTime("11:01:57").toTime("11:03:01");
 //        Param param = new Param().date("2020-01-17").logContainKey("未能在目录").maxLineOfLogWithoutStartFlag(10);
-        StdLogExtractor<Param, Index, StdReport, Data> manager = new StdLogExtractor<Param, Index, StdReport, Data>(Data.class, Index.class);
+        StdLogExtractor<Param, Index, Report, Data> manager = new StdLogExtractor<Param, Index, Report, Data>(Data.class, Index.class);
         manager.setIdGenerator(new SFileLogExtractor.SimpleIdGenerator());
         manager.setIndexStorageCenter(new StdStorageCenter<Index>());
         manager.setIndexHandlerFactory(new IndexHandlerFactory());
@@ -40,9 +39,9 @@ class QueryManagerTest {
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
         manager.setLogAssembler(new StdLogAssembler<Param, Data>());
-        manager.setReporter(new StdLogReporter<Param, StdReport, Data>(StdReport.class));
+        manager.setReporter(new StdLogReporter<Param, Report, Data>(Report.class));
         manager.setFilterFactory(new FilterFactory());
-        StdReport report = manager.find(param);
+        Report report = manager.find(param);
         printReport(param, report);
         String reportId;
         long query = report.queryLoad;
@@ -54,10 +53,10 @@ class QueryManagerTest {
         System.out.println("totalQuery:" + query + " and count:" + mNo);
     }
 
-    private void printReport(Param param, StdReport report) {
+    private void printReport(Param param, Report report) {
         String json;
         try {
-            json = new ObjectMapper().writeValueAsString(new Result(param, report).list);
+            json = new ObjectMapper().writeValueAsString(report.getInfoList(param));
         } catch (JsonProcessingException e) {
             json = "转化异常";
         }
