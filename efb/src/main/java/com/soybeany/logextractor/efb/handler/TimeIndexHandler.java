@@ -17,7 +17,7 @@ import java.util.List;
 public class TimeIndexHandler implements ISFileIndexHandler<Param, Index, StdLine, StdFlag> {
     @Override
     public List<SFileRange> getRangeStrict(Param param, Index index) {
-        SFileRange[] timeIndex = index.time.get(param.date);
+        SFileRange[] timeIndex = index.time.get(param.date.substring(2));
         // 若没有建立索引则不作限制
         if (null == timeIndex) {
             return null;

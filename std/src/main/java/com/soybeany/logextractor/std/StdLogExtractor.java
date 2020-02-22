@@ -7,6 +7,8 @@ import com.soybeany.logextractor.sfile.SFileLogExtractor;
 import com.soybeany.logextractor.sfile.data.ISFileIndex;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
+import com.soybeany.logextractor.std.center.IStdStorageCenter;
+import com.soybeany.logextractor.std.center.StdAutoRemoveTaskCenter;
 import com.soybeany.logextractor.std.data.IStdParam;
 import com.soybeany.logextractor.std.data.StdData;
 import com.soybeany.logextractor.std.data.StdLine;
@@ -14,23 +16,22 @@ import com.soybeany.logextractor.std.data.StdLog;
 import com.soybeany.logextractor.std.data.flag.StdFlag;
 import com.soybeany.logextractor.std.reporter.StdLogReporter;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 /**
  * 标准日志提取器
- * <br>超时自动删除Index、Data缓存 // todo 待完成
+ * <br>超时自动删除Index、Data缓存
  * <br>提供标准的报告内容
  * <br>Created by Soybeany on 2020/2/8.
  */
 public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex, Report, Data extends StdData<Param, Index, Report>> extends SFileLogExtractor<Param, Index, StdLine, StdFlag, StdLog, Report, Data> {
 
-    private static final ScheduledExecutorService SERVICE = Executors.newSingleThreadScheduledExecutor();
-
     private IInstanceFactory<Index> mIndexFactory;
     private BaseStorageCenter<Index> mIndexStorageCenter;
+    private BaseStorageCenter<Data> mDataStorageCenter;
 
     private final TimingModule mTimingModule = new TimingModule();
+
+    private int mIndexAutoRemoveTime = 3600;
+    private int mDataAutoRemoveTime = 600;
 
     public StdLogExtractor(Class<Data> dataClass, Class<Index> indexClass) {
         this(new DefaultInstanceFactory<Data>(dataClass), new DefaultInstanceFactory<Index>(indexClass));
@@ -48,19 +49,20 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
 
     @Override
     public void setIndexStorageCenter(BaseStorageCenter<Index> center) {
-//        if (!(center instanceof IStdStorageCenter)) {
-//            throw new BusinessException("center请实现IStdStorageCenter接口");
-//        }
+        if (!(center instanceof IStdStorageCenter)) {
+            throw new BusinessException("center请实现IStdStorageCenter接口");
+        }
         super.setIndexStorageCenter(center);
         mIndexStorageCenter = center;
     }
 
     @Override
     public void setDataStorageCenter(BaseStorageCenter<Data> center) {
-//        if (!(center instanceof IStdStorageCenter)) {
-//            throw new BusinessException("center请实现IStdStorageCenter接口");
-//        }
+        if (!(center instanceof IStdStorageCenter)) {
+            throw new BusinessException("center请实现IStdStorageCenter接口");
+        }
         super.setDataStorageCenter(center);
+        mDataStorageCenter = center;
     }
 
     @Override
@@ -69,6 +71,46 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
             throw new BusinessException("请使用StdFileLoader作为入参");
         }
         super.setLoader(loader);
+    }
+
+    // ****************************************子类重写****************************************
+
+    @Override
+    public Report find(Param param) throws InterruptedException {
+        param.onCheckParams();
+        String indexId = param.getIndexId();
+        mTimingModule.startRecord();
+        try {
+            // 阻止索引的删除
+            StdAutoRemoveTaskCenter.removeTask(indexId);
+            return super.find(param);
+        } finally {
+            // 重建索引的删除
+            StdAutoRemoveTaskCenter.addTask(indexId, mIndexAutoRemoveTime, new TaskRemoveRunnable((IStdStorageCenter) mIndexStorageCenter, indexId));
+        }
+    }
+
+    @Override
+    public Report findById(String dataId) throws InterruptedException {
+        mTimingModule.startRecord();
+        try {
+            // 阻止数据的删除
+            StdAutoRemoveTaskCenter.removeTask(dataId);
+            return super.findById(dataId);
+        } finally {
+            // 重建数据的删除
+            StdAutoRemoveTaskCenter.addTask(dataId, mDataAutoRemoveTime, new TaskRemoveRunnable((IStdStorageCenter) mDataStorageCenter, dataId));
+        }
+    }
+
+    // ****************************************额外设置****************************************
+
+    public void setIndexAutoRemoveTime(int sec) {
+        mIndexAutoRemoveTime = sec;
+    }
+
+    public void setDataAutoRemoveTime(int sec) {
+        mDataAutoRemoveTime = sec;
     }
 
     // ****************************************输出API****************************************
@@ -80,22 +122,22 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
         return newIndex;
     }
 
-    // ****************************************子类重写****************************************
-
-    @Override
-    public Report find(Param param) throws InterruptedException {
-        param.onCheckParams();
-        mTimingModule.startRecord();
-        return super.find(param);
-    }
-
-    @Override
-    public Report findById(String dataId) throws InterruptedException {
-        mTimingModule.startRecord();
-        return super.findById(dataId);
-    }
-
     // ****************************************内部类****************************************
+
+    private static class TaskRemoveRunnable implements Runnable {
+        private IStdStorageCenter mCenter;
+        private String mId;
+
+        TaskRemoveRunnable(IStdStorageCenter center, String id) {
+            mCenter = center;
+            mId = id;
+        }
+
+        @Override
+        public void run() {
+            mCenter.remove(mId);
+        }
+    }
 
     private static class DefaultInstanceFactory<T> implements IInstanceFactory<T> {
         private Class<T> mClazz;

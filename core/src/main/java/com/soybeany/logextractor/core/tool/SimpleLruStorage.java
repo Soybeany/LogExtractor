@@ -2,10 +2,7 @@ package com.soybeany.logextractor.core.tool;
 
 import com.soybeany.logextractor.core.common.BusinessException;
 
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * <br>Created by Soybeany on 2020/2/7.
@@ -13,6 +10,7 @@ import java.util.Set;
 public class SimpleLruStorage<Key, Value> {
     private final Map<Key, Value> mMap = new LinkedHashMap<Key, Value>(0, 0.75f, true);
 
+    private List<IListener<Key, Value>> mListeners = new LinkedList<IListener<Key, Value>>();
     private int mCapacity = 10;
 
     public synchronized void setCapacity(int count) {
@@ -59,6 +57,14 @@ public class SimpleLruStorage<Key, Value> {
         mMap.clear();
     }
 
+    public synchronized void addListener(IListener<Key, Value> listener) {
+        mListeners.add(listener);
+    }
+
+    public synchronized void removeListener(IListener<Key, Value> listener) {
+        mListeners.remove(listener);
+    }
+
     private void trimSize() {
         if (mMap.isEmpty()) {
             return;
@@ -67,7 +73,15 @@ public class SimpleLruStorage<Key, Value> {
         Iterator<Key> iterator = keySet.iterator();
 
         while (keySet.size() >= mCapacity) {
-            mMap.remove(iterator.next());
+            Key key = iterator.next();
+            Value value = mMap.remove(key);
+            for (IListener<Key, Value> listener : mListeners) {
+                listener.onTrim(key, value);
+            }
         }
+    }
+
+    public interface IListener<Key, Value> {
+        void onTrim(Key key, Value value);
     }
 }

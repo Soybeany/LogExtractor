@@ -2,7 +2,6 @@ package query;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.soybeany.logextractor.core.center.MemStorageCenter;
 import com.soybeany.logextractor.efb.data.Data;
 import com.soybeany.logextractor.efb.data.Index;
 import com.soybeany.logextractor.efb.data.Param;
@@ -15,12 +14,12 @@ import com.soybeany.logextractor.sfile.SFileLogExtractor;
 import com.soybeany.logextractor.std.Loader.StdFileLoader;
 import com.soybeany.logextractor.std.StdLogExtractor;
 import com.soybeany.logextractor.std.assembler.StdLogAssembler;
+import com.soybeany.logextractor.std.center.StdStorageCenter;
 import com.soybeany.logextractor.std.data.StdReport;
 import com.soybeany.logextractor.std.reporter.StdLogReporter;
 import org.junit.jupiter.api.Test;
 
 /**
- * todo 在data中放入锁
  * <br>Created by Soybeany on 2020/2/5.
  */
 class QueryManagerTest {
@@ -29,14 +28,14 @@ class QueryManagerTest {
 
     @Test
     public void testLog() throws Exception {
-//        Param param = new Param().date("20-01-17").types("管理端|客户端").url("query")
-//                .fromTime("11:01:57").toTime("11:03:01");
-        Param param = new Param().date("20-01-17").logContainKey("未能在目录").maxLineOfLogWithoutStartFlag(10);
+        Param param = new Param().date("2020-01-17").types("管理端|客户端").url("query")
+                .fromTime("11:01:57").toTime("11:03:01");
+//        Param param = new Param().date("2020-01-17").logContainKey("未能在目录").maxLineOfLogWithoutStartFlag(10);
         StdLogExtractor<Param, Index, StdReport, Data> manager = new StdLogExtractor<Param, Index, StdReport, Data>(Data.class, Index.class);
         manager.setIdGenerator(new SFileLogExtractor.SimpleIdGenerator());
-        manager.setIndexStorageCenter(new MemStorageCenter<Index>());
+        manager.setIndexStorageCenter(new StdStorageCenter<Index>());
         manager.setIndexHandlerFactory(new IndexHandlerFactory());
-        manager.setDataStorageCenter(new MemStorageCenter<Data>());
+        manager.setDataStorageCenter(new StdStorageCenter<Data>());
         manager.setLoader(new StdFileLoader<Param, Index, Data>());
         manager.setLineParser(new LineParser());
         manager.setFlagParser(new FlagParser());
