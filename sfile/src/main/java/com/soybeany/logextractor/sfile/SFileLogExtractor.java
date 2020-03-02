@@ -202,14 +202,14 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
                 mData.setNoNextDataReason(IRenewalData.REASON_EOF);
                 return;
             }
-            SFileRange needLoadRange = mData.getNeedLoadRange();
+            SFileRange actMaxLoadRange = mData.getActMaxLoadRange();
             // 范围已加载完
-            if (curLineEndPointer == needLoadRange.end) {
+            if (curLineEndPointer == actMaxLoadRange.end) {
                 mData.setNoNextDataReason(IRenewalData.REASON_EOR);
                 return;
             }
             // 没有加载数据
-            if (curLineEndPointer == needLoadRange.start) {
+            if (curLineEndPointer == actMaxLoadRange.start) {
                 mData.setNoNextDataReason(IRenewalData.REASON_NOT_LOAD);
                 return;
             }
@@ -220,7 +220,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
         private void setupLoadRange(Param param) {
             // 若已设置范围，则不再重复设置
-            if (null != mData.getExceptLoadRanges()) {
+            if (null != mData.getUnhandledLoadRanges()) {
                 return;
             }
             // 设置范围
@@ -233,7 +233,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
                     merger.merge(handler.getRangeStrict(param, index));
                 }
             }
-            mData.setExceptLoadRanges(merger.getResult().getIntersectionRanges());
+            mData.setUnhandledLoadRanges(merger.getResult().getIntersectionRanges());
         }
     }
 

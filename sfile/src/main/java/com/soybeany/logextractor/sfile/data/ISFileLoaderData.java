@@ -12,9 +12,9 @@ public interface ISFileLoaderData {
     void setFileSize(long size);
 
     /**
-     * 处理后得到的需要加载的最大范围
+     * 断点加载的范围(断点加载时才会更新数据)
      */
-    SFileRange getNeedLoadRange();
+    SFileRange getRenewalLoadRange();
 
     /**
      * 正在处理的行所在的范围
@@ -22,16 +22,21 @@ public interface ISFileLoaderData {
     SFileRange getCurLineRange();
 
     /**
-     * 入参，期望加载的范围，未处理
+     * 入参，未处理的加载范围
      */
-    List<SFileRange> getExceptLoadRanges();
+    List<SFileRange> getUnhandledLoadRanges();
 
-    void setExceptLoadRanges(List<SFileRange> result);
+    void setUnhandledLoadRanges(List<SFileRange> result);
 
     /**
-     * 实际加载的范围，在加载完成前为null
+     * 处理后的加载范围（在处理前为null）
      */
-    List<SFileRange> getActLoadRanges();
+    List<SFileRange> getHandledLoadRanges();
 
-    void setActLoadRanges(List<SFileRange> range);
+    void setHandledLoadRanges(List<SFileRange> range);
+
+    /**
+     * 实际加载的最大范围（在处理前为最大范围）
+     */
+    SFileRange getActMaxLoadRange();
 }

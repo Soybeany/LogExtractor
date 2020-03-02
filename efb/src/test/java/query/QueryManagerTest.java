@@ -44,14 +44,16 @@ class QueryManagerTest {
         manager.setFilterFactory(new FilterFactory());
         StdReport report = manager.find(param);
         printReport(param, report);
-        String reportId;
-        long query = report.queryLoad;
-        while (null != (reportId = report.nextDataId)) {
-            report = manager.findById(reportId);
-            query += report.queryLoad;
-            printReport(param, report);
-        }
-        System.out.println("totalQuery:" + query + " and count:" + mNo);
+        StdReport report2 = manager.find(param);
+        printReport(param, report2);
+//        String reportId;
+//        long query = report.queryLoad;
+//        while (null != (reportId = report.nextDataId)) {
+//            report = manager.findById(reportId);
+//            query += report.queryLoad;
+//            printReport(param, report);
+//        }
+//        System.out.println("totalQuery:" + query + " and count:" + mNo);
     }
 
     private void printReport(Param param, StdReport report) {

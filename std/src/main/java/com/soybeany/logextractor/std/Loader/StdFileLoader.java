@@ -48,14 +48,14 @@ public class StdFileLoader<Param extends IStdFileLoaderParam, Index extends ISFi
     @Override
     public void onScanFinish() {
         super.onScanFinish();
-        SFileRange needLoadRange = mData.getNeedLoadRange();
-        mData.setScanRange(SFileRange.between(needLoadRange.start, mCurLineRange.end));
+        SFileRange actMaxLoadRange = mData.getActMaxLoadRange();
+        mData.setScanRange(SFileRange.between(actMaxLoadRange.start, mCurLineRange.end));
     }
 
     @Override
     public void onReadyToGenerateReport() {
         super.onReadyToGenerateReport();
-        List<SFileRange> loadRanges = mData.getActLoadRanges();
+        List<SFileRange> loadRanges = mData.getHandledLoadRanges();
         long loadedPointer = 0;
         for (SFileRange range : loadRanges) {
             loadedPointer += range.end - range.start;

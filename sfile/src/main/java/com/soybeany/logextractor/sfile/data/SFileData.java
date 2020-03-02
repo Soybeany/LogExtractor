@@ -31,9 +31,10 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
 
     private long mFileSize;
     private final SFileRange mCurLineRange = SFileRange.empty();
-    private final SFileRange mNeedLoadRange = SFileRange.max();
-    private List<SFileRange> mExpectLoadRanges;
-    private List<SFileRange> mActLoadRanges;
+    private final SFileRange mRenewalLoadRange = SFileRange.max();
+    private List<SFileRange> mUnhandledLoadRanges;
+    private List<SFileRange> mHandledLoadRanges;
+    private SFileRange mActMaxLoadRange = SFileRange.max();
 
     @Override
     public ReentrantLock getLock() {
@@ -91,8 +92,8 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     }
 
     @Override
-    public SFileRange getNeedLoadRange() {
-        return mNeedLoadRange;
+    public SFileRange getRenewalLoadRange() {
+        return mRenewalLoadRange;
     }
 
     @Override
@@ -101,23 +102,28 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
     }
 
     @Override
-    public List<SFileRange> getExceptLoadRanges() {
-        return mExpectLoadRanges;
+    public List<SFileRange> getUnhandledLoadRanges() {
+        return mUnhandledLoadRanges;
     }
 
     @Override
-    public void setExceptLoadRanges(List<SFileRange> ranges) {
-        mExpectLoadRanges = ranges;
+    public void setUnhandledLoadRanges(List<SFileRange> ranges) {
+        mUnhandledLoadRanges = ranges;
     }
 
     @Override
-    public List<SFileRange> getActLoadRanges() {
-        return mActLoadRanges;
+    public List<SFileRange> getHandledLoadRanges() {
+        return mHandledLoadRanges;
     }
 
     @Override
-    public void setActLoadRanges(List<SFileRange> range) {
-        mActLoadRanges = range;
+    public void setHandledLoadRanges(List<SFileRange> range) {
+        mHandledLoadRanges = range;
+    }
+
+    @Override
+    public SFileRange getActMaxLoadRange() {
+        return mActMaxLoadRange;
     }
 
     public void beNextDataOf(SFileData<Param, Index, Report> data) {
@@ -130,8 +136,8 @@ public abstract class SFileData<Param, Index, Report> extends BaseData<Index> im
         // 设置参数
         param = data.param;
         // 设置位点
-        mNeedLoadRange.updateStart(data.getCurLineRange().end);
+        mRenewalLoadRange.updateStart(data.getCurLineRange().end);
         // 设置期望范围
-        setExceptLoadRanges(data.getExceptLoadRanges());
+        setUnhandledLoadRanges(data.getUnhandledLoadRanges());
     }
 }

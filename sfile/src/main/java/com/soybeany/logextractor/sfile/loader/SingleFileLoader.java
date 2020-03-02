@@ -60,11 +60,11 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
         // 更新数据
         long startPointer = mRaf.getFilePointer();
         SFileRange curLineRange = mData.getCurLineRange();
-        SFileRange needLoadRange = mData.getNeedLoadRange();
+        SFileRange actMaxLoadRange = mData.getActMaxLoadRange();
         curLineRange.updateStart(startPointer);
         curLineRange.updateEnd(startPointer);
-        needLoadRange.updateStart(startPointer);
-        needLoadRange.updateEnd(mTargetEndPointer);
+        actMaxLoadRange.updateStart(startPointer);
+        actMaxLoadRange.updateEnd(mTargetEndPointer);
         mData.setFileSize(mFileLength);
     }
 
@@ -124,7 +124,7 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
         else {
             List<SFileRange> ranges;
             // 有限定的查询范围
-            if (null != (ranges = mData.getExceptLoadRanges())) {
+            if (null != (ranges = mData.getUnhandledLoadRanges())) {
                 merger.merge(getNotEmptyRanges(ranges));
             }
             // 没有限定的查询范围
@@ -133,12 +133,12 @@ public class SingleFileLoader<Param extends ISFileLoaderParam, Index extends ISF
             }
         }
         // 结合数据中设置的范围
-        mergeSingleRange(merger, mData.getNeedLoadRange());
+        mergeSingleRange(merger, mData.getRenewalLoadRange());
         // 结合文件长度
         mergeSingleRange(merger, SFileRange.to(mFileLength));
         // 得到实际需要加载的范围
         mLoadRanges.addAll(getNotEmptyRanges(merger.getResult().getIntersectionRanges()));
-        mData.setActLoadRanges(mLoadRanges);
+        mData.setHandledLoadRanges(mLoadRanges);
     }
 
     private void mergeSingleRange(RangeMerger merger, SFileRange range) {
