@@ -2,6 +2,7 @@ package com.soybeany.logextractor.efb.data;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.soybeany.logextractor.core.common.ToolUtils;
 import com.soybeany.logextractor.efb.data.flag.RequestFlag;
 import com.soybeany.logextractor.efb.util.TypeChecker;
 import com.soybeany.logextractor.std.data.StdLine;
@@ -15,7 +16,9 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/20.
  */
-public class Report extends StdReport {
+public class ReportDTO {
+
+    private StdReport mReport;
 
     private static String millsToSec(long mills) {
         int sec = (int) (mills / 1000);
@@ -23,6 +26,11 @@ public class Report extends StdReport {
             return "<1s";
         }
         return sec + "s";
+    }
+
+    public ReportDTO(StdReport report) {
+        ToolUtils.checkNull(report, "报告对象不能为null");
+        mReport = report;
     }
 
     public List<Object> getInfoList(Param param) {
@@ -37,34 +45,34 @@ public class Report extends StdReport {
     private void addInfo(Param param, List<Object> list) {
         if (!param.hideUnimportantInfo) {
             LoadLength loadLength = new LoadLength();
-            loadLength.totalScan = totalScan;
-            loadLength.newScan = newScan;
-            loadLength.queryLoad = queryLoad;
+            loadLength.totalScan = mReport.totalScan;
+            loadLength.newScan = mReport.newScan;
+            loadLength.queryLoad = mReport.queryLoad;
             list.add(loadLength);
 
             Count count = new Count();
-            count.expectCount = expectCount;
-            count.actualCount = actualCount;
-            count.noNextDataReason = noNextDataReason;
+            count.expectCount = mReport.expectCount;
+            count.actualCount = mReport.actualCount;
+            count.noNextDataReason = mReport.noNextDataReason;
             list.add(count);
 
             Spend spend = new Spend();
-            spend.scanSpend = Spend.toString("扫描", scanSpend);
-            spend.querySpend = Spend.toString("查询", querySpend);
+            spend.scanSpend = Spend.toString("扫描", mReport.scanSpend);
+            spend.querySpend = Spend.toString("查询", mReport.querySpend);
             list.add(spend);
         }
         Id id = new Id();
-        id.lastDataId = lastDataId;
-        id.curDataId = curDataId;
-        id.nextDataId = nextDataId;
+        id.lastDataId = mReport.lastDataId;
+        id.curDataId = mReport.curDataId;
+        id.nextDataId = mReport.nextDataId;
         list.add(id);
     }
 
     private void addLogs(List<Object> list) {
-        if (null == logs) {
+        if (null == mReport.logs) {
             return;
         }
-        for (StdLog log : logs) {
+        for (StdLog log : mReport.logs) {
             if (TypeChecker.isRequest(log.getType())) {
                 list.add(new RequestLog(log));
             } else {
