@@ -12,8 +12,8 @@
         <module>core</module>
         <module>sfile</module>
         <module>std</module>
-        <module>efb</module>
         <module>std-writer</module>
+        <module>demo</module>
     </modules>
 
     <properties>
