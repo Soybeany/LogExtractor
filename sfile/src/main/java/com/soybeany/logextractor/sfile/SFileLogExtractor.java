@@ -106,7 +106,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
     public Report find(Param param) throws InterruptedException {
         ToolUtils.checkNull(param, "param不能为null");
         // 获取数据
-        Data data = getData(mIdGenerator.getNewId());
+        Data data = getData(mIdGenerator.getNewId(), true);
         data.param = param;
         // 更新索引
         mScanManager.createOrUpdateIndexes(param, data);
@@ -119,7 +119,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
      */
     public Report findById(String dataId) throws InterruptedException {
         ToolUtils.checkNull(dataId, "DataId不能为null");
-        Data data = getData(dataId);
+        Data data = getData(dataId, false);
         try {
             SimpleUniqueLock.tryAttain(data.getLock(), data.param.getTryLockTimeoutSec());
             if (null == data.report) {
@@ -133,8 +133,11 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
     // ****************************************内部方法****************************************
 
-    private Data getData(String dataId) {
+    private Data getData(String dataId, boolean needCreate) {
         ToolUtils.checkNull(mDataStorageCenter, "DataStorageCenter不能为null");
+        if (!needCreate) {
+            return mDataStorageCenter.load(dataId);
+        }
         Data data = mDataStorageCenter.loadAndSaveIfNotExist(dataId, mDataInstanceFactory);
         data.setCurDataId(dataId);
         return data;
@@ -210,7 +213,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
                 return;
             }
             // 准备下一数据
-            Data nextData = getData(mIdGenerator.getNewId());
+            Data nextData = getData(mIdGenerator.getNewId(), true);
             nextData.beNextDataOf(mData);
         }
 
