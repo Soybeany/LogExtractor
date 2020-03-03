@@ -175,6 +175,7 @@ public class StdLogExtractor<Param extends IStdParam, Index extends ISFileIndex,
         @Override
         public void onScanFinish() {
             mData.setScanSpend(getSpend());
+            startRecord();
         }
 
         @Override

@@ -110,11 +110,8 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         data.param = param;
         // 更新索引
         mScanManager.createOrUpdateIndexes(param, data);
-        // 执行查找
-        Report report = mQueryManager.find(param, data);
-        // 记录报告
-        data.report = report;
-        return report;
+        // 执行查找并记录报告
+        return data.report = mQueryManager.find(param, data);
     }
 
     /**
@@ -125,11 +122,10 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         Data data = getData(dataId);
         try {
             SimpleUniqueLock.tryAttain(data.getLock(), data.param.getTryLockTimeoutSec());
-            Report report = data.report;
-            if (null == report) {
-                report = mQueryManager.find(data.param, data);
+            if (null == data.report) {
+                data.report = mQueryManager.find(data.param, data);
             }
-            return report;
+            return data.report;
         } finally {
             SimpleUniqueLock.release(data.getLock());
         }
