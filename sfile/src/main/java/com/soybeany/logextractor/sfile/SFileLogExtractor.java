@@ -9,7 +9,8 @@ import com.soybeany.logextractor.core.scan.BaseIndexCreatorFactory;
 import com.soybeany.logextractor.core.scan.ScanManager;
 import com.soybeany.logextractor.core.tool.SimpleUniqueLock;
 import com.soybeany.logextractor.sfile.data.*;
-import com.soybeany.logextractor.sfile.handler.ISFileIndexHandler;
+import com.soybeany.logextractor.sfile.filter.ISFileLogFilterFactory;
+import com.soybeany.logextractor.sfile.handler.SFileIndexHandler;
 import com.soybeany.logextractor.sfile.handler.SFileIndexHandlerFactory;
 import com.soybeany.logextractor.sfile.loader.SingleFileLoader;
 import com.soybeany.logextractor.sfile.merge.RangeMerger;
@@ -35,7 +36,8 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
     private BaseStorageCenter<Index> mIndexStorageCenter;
     private IInstanceFactory<Data> mDataInstanceFactory;
     private BaseStorageCenter<Data> mDataStorageCenter;
-    private SFileIndexHandlerFactory<Param, Index, Line, Flag, Data> mIndexHandlerFactory;
+    private SFileIndexHandlerFactory<Param, Index, Line, Flag, Data, Log> mIndexHandlerFactory;
+    private ISFileLogFilterFactory<Log> mLogFilterFactory;
 
 
     public SFileLogExtractor(IInstanceFactory<Data> dataFactory, IInstanceFactory<Index> indexFactory) {
@@ -82,8 +84,13 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         mQueryManager.setLogAssembler(assembler);
     }
 
+    @SuppressWarnings("unchecked")
     public void setFilterFactory(BaseLogFilterFactory<Param, Log, Data> factory) {
+        if (!(factory instanceof ISFileLogFilterFactory)) {
+            throw new BusinessException("factory请实现ISFileLogFilterFactory接口");
+        }
         mQueryManager.setFilterFactory(factory);
+        mLogFilterFactory = (ISFileLogFilterFactory<Log>) factory;
     }
 
     public void setReporter(BaseLogReporter<Param, Log, Report, Data> reporter) {
@@ -94,7 +101,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         mDataStorageCenter = center;
     }
 
-    public void setIndexHandlerFactory(SFileIndexHandlerFactory<Param, Index, Line, Flag, Data> factory) {
+    public void setIndexHandlerFactory(SFileIndexHandlerFactory<Param, Index, Line, Flag, Data, Log> factory) {
         mIndexHandlerFactory = factory;
     }
 
@@ -111,6 +118,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         // 更新索引
         mScanManager.createOrUpdateIndexes(param, data);
         // 执行查找并记录报告
+        onFindStart(param, data);
         return data.report = mQueryManager.find(param, data);
     }
 
@@ -123,11 +131,29 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         try {
             SimpleUniqueLock.tryAttain(data.getLock(), data.param.getTryLockTimeoutSec());
             if (null == data.report) {
+                onFindStart(data.param, data);
                 data.report = mQueryManager.find(data.param, data);
             }
             return data.report;
         } finally {
             SimpleUniqueLock.release(data.getLock());
+        }
+    }
+
+    // ****************************************子类方法****************************************
+
+    protected void onFindStart(Param param, Data data) {
+        // 补充过滤器
+        List<? extends SFileIndexHandler<Param, Index, Line, Flag, Log>> handlerList = getNonNullIndexHandlerFactory().getHandlerList();
+        if (null != handlerList && null != mLogFilterFactory) {
+            List<BaseLogFilter<Log>> filters = new LinkedList<BaseLogFilter<Log>>();
+            for (SFileIndexHandler<Param, Index, Line, Flag, Log> handler : handlerList) {
+                BaseLogFilter<Log> filter = handler.getLogFilter(param);
+                if (null != filter) {
+                    filters.add(filter);
+                }
+            }
+            mLogFilterFactory.setExtractFilters(filters);
         }
     }
 
@@ -143,7 +169,7 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
         return data;
     }
 
-    private SFileIndexHandlerFactory<Param, Index, Line, Flag, Data> getNonNullIndexHandlerFactory() {
+    private SFileIndexHandlerFactory<Param, Index, Line, Flag, Data, Log> getNonNullIndexHandlerFactory() {
         if (null == mIndexHandlerFactory) {
             mIndexHandlerFactory = new DefaultIndexHandlerFactory();
         }
@@ -174,8 +200,8 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
     // ****************************************成员内部类****************************************
 
-    private interface ICallback<Param extends ISFileParam, Index extends ISFileIndex, Line, Flag, Data, Info> {
-        BaseIndexCreator<Index, Info> getNewIndexCreator(ISFileIndexHandler<Param, Index, Line, Flag> handler);
+    private interface ICallback<Param extends ISFileParam, Index extends ISFileIndex, Line, Flag, Info, Log> {
+        BaseIndexCreator<Index, Info> getNewIndexCreator(SFileIndexHandler<Param, Index, Line, Flag, Log> handler);
     }
 
     private class InnerModule extends BaseModule<Param, Data> implements IQueryListener {
@@ -225,10 +251,10 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
             // 设置范围
             RangeMerger merger = new RangeMerger();
             merger.merge(Collections.singletonList(SFileRange.max()));
-            List<? extends ISFileIndexHandler<Param, Index, Line, Flag>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
+            List<? extends SFileIndexHandler<Param, Index, Line, Flag, Log>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
             if (null != handlers) {
                 Index index = mIndexStorageCenter.load(param.getIndexId());
-                for (ISFileIndexHandler<Param, Index, Line, Flag> handler : handlers) {
+                for (SFileIndexHandler<Param, Index, Line, Flag, Log> handler : handlers) {
                     merger.merge(handler.getRangeStrict(param, index));
                 }
             }
@@ -247,9 +273,9 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
         @Override
         public List<? extends BaseIndexCreator<Index, Line>> getLineIndexCreators() {
-            return getCreators(new ICallback<Param, Index, Line, Flag, Data, Line>() {
+            return getCreators(new ICallback<Param, Index, Line, Flag, Line, Log>() {
                 @Override
-                public BaseIndexCreator<Index, Line> getNewIndexCreator(final ISFileIndexHandler<Param, Index, Line, Flag> handler) {
+                public BaseIndexCreator<Index, Line> getNewIndexCreator(final SFileIndexHandler<Param, Index, Line, Flag, Log> handler) {
                     return new BaseIndexCreator<Index, Line>() {
                         @Override
                         public void onCreateIndex(Index index, Line line) {
@@ -262,9 +288,9 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
 
         @Override
         public List<? extends BaseIndexCreator<Index, Flag>> getFlagIndexCreators() {
-            return getCreators(new ICallback<Param, Index, Line, Flag, Data, Flag>() {
+            return getCreators(new ICallback<Param, Index, Line, Flag, Flag, Log>() {
                 @Override
-                public BaseIndexCreator<Index, Flag> getNewIndexCreator(final ISFileIndexHandler<Param, Index, Line, Flag> handler) {
+                public BaseIndexCreator<Index, Flag> getNewIndexCreator(final SFileIndexHandler<Param, Index, Line, Flag, Log> handler) {
                     return new BaseIndexCreator<Index, Flag>() {
                         @Override
                         public void onCreateIndex(Index index, Flag flag) {
@@ -275,22 +301,22 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
             });
         }
 
-        private <Info> List<BaseIndexCreator<Index, Info>> getCreators(ICallback<Param, Index, Line, Flag, Data, Info> callback) {
-            List<? extends ISFileIndexHandler<Param, Index, Line, Flag>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
+        private <Info> List<BaseIndexCreator<Index, Info>> getCreators(ICallback<Param, Index, Line, Flag, Info, Log> callback) {
+            List<? extends SFileIndexHandler<Param, Index, Line, Flag, Log>> handlers = getNonNullIndexHandlerFactory().getHandlerList();
             if (null == handlers) {
                 return null;
             }
             List<BaseIndexCreator<Index, Info>> result = new LinkedList<BaseIndexCreator<Index, Info>>();
-            for (final ISFileIndexHandler<Param, Index, Line, Flag> handler : handlers) {
+            for (final SFileIndexHandler<Param, Index, Line, Flag, Log> handler : handlers) {
                 result.add(callback.getNewIndexCreator(handler));
             }
             return result;
         }
     }
 
-    private class DefaultIndexHandlerFactory extends SFileIndexHandlerFactory<Param, Index, Line, Flag, Data> {
+    private class DefaultIndexHandlerFactory extends SFileIndexHandlerFactory<Param, Index, Line, Flag, Data, Log> {
         @Override
-        public List<ISFileIndexHandler<Param, Index, Line, Flag>> getHandlerList() {
+        public List<SFileIndexHandler<Param, Index, Line, Flag, Log>> getHandlerList() {
             return null;
         }
     }

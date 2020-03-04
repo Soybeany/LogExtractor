@@ -4,8 +4,9 @@ import com.soybeany.logextractor.core.common.BusinessException;
 import com.soybeany.logextractor.demo.data.Index;
 import com.soybeany.logextractor.demo.data.Param;
 import com.soybeany.logextractor.sfile.data.SFileRange;
-import com.soybeany.logextractor.sfile.handler.ISFileIndexHandler;
+import com.soybeany.logextractor.sfile.handler.SFileIndexHandler;
 import com.soybeany.logextractor.std.data.StdLine;
+import com.soybeany.logextractor.std.data.StdLog;
 import com.soybeany.logextractor.std.data.flag.StdFlag;
 
 import java.util.LinkedList;
@@ -15,7 +16,7 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/2/19.
  */
-public abstract class BaseKeyIndexHandler implements ISFileIndexHandler<Param, Index, StdLine, StdFlag> {
+public abstract class BaseKeyIndexHandler extends SFileIndexHandler<Param, Index, StdLine, StdFlag, StdLog> {
 
     private static final long MAX_VALUE = Long.MAX_VALUE;
     private long mMaxCrossLength = 1000;

@@ -4,6 +4,7 @@ import com.soybeany.logextractor.core.query.BaseLogFilter;
 import com.soybeany.logextractor.core.query.BaseLogFilterFactory;
 import com.soybeany.logextractor.demo.data.Data;
 import com.soybeany.logextractor.demo.data.Param;
+import com.soybeany.logextractor.sfile.filter.ISFileLogFilterFactory;
 import com.soybeany.logextractor.std.data.StdLog;
 
 import java.util.LinkedList;
@@ -12,8 +13,9 @@ import java.util.List;
 /**
  * <br>Created by Soybeany on 2020/2/19.
  */
-public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
+public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> implements ISFileLogFilterFactory<StdLog> {
     private Param mParam;
+    private List<BaseLogFilter<StdLog>> mFilters;
 
     @Override
     public void onStart(Param param, Data data) throws Exception {
@@ -38,15 +40,14 @@ public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
         return list;
     }
 
+    @Override
+    public void setExtractFilters(List<BaseLogFilter<StdLog>> filters) {
+        mFilters = filters;
+    }
+
     private void addCommonFilters(List<BaseLogFilter<StdLog>> list) {
-        if (null != mParam.fromTime || null != mParam.toTime) {
-            list.add(new TimeFilter(mParam.fromTime, mParam.toTime));
-        }
-        if (null != mParam.url) {
-            list.add(new UrlFilter(mParam.url));
-        }
-        if (null != mParam.userNo) {
-            list.add(new UserNoFilter(mParam.userNo));
+        if (null != mFilters) {
+            list.addAll(mFilters);
         }
         if (null != mParam.types) {
             list.add(new TypeFilter(mParam.types));
@@ -61,4 +62,5 @@ public class FilterFactory extends BaseLogFilterFactory<Param, StdLog, Data> {
             list.add(new LogContainRegexFilter(mParam.logContainRegex));
         }
     }
+
 }

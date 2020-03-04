@@ -81,6 +81,7 @@ public abstract class StdData<Param, Index, Report> extends SFileData<Param, Ind
             return;
         }
         StdData<Param, Index, Report> stdData = (StdData<Param, Index, Report>) data;
+        mScanRange = SFileRange.between(stdData.mScanRange.end, stdData.mScanRange.end);
         mLogStorage = stdData.getLogStorage();
     }
 }
