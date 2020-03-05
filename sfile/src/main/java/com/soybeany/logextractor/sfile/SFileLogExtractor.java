@@ -190,11 +190,13 @@ public class SFileLogExtractor<Param extends ISFileParam, Index extends ISFileIn
     }
 
     public static class SimpleIdGenerator implements IIdGenerator {
-        private int a;
+        private static int A;
 
         @Override
-        public synchronized String getNewId() {
-            return ++a + "";
+        public String getNewId() {
+            synchronized (SimpleIdGenerator.class) {
+                return ++A + "";
+            }
         }
     }
 

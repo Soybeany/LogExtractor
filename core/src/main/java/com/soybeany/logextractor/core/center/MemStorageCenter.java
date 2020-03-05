@@ -19,12 +19,14 @@ public class MemStorageCenter<T> extends BaseStorageCenter<T> {
 
     @Override
     @SuppressWarnings("unchecked")
-    public synchronized T loadAndSaveIfNotExist(String id, IInstanceFactory<T> factory) {
-        T data = (T) STORAGE.get(id);
-        if (null == data) {
-            STORAGE.put(id, data = factory.getNew());
+    public T loadAndSaveIfNotExist(String id, IInstanceFactory<T> factory) {
+        synchronized (STORAGE) {
+            T data = (T) STORAGE.get(id);
+            if (null == data) {
+                STORAGE.put(id, data = factory.getNew());
+            }
+            return data;
         }
-        return data;
     }
 
 }

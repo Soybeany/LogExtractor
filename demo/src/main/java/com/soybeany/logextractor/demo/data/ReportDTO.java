@@ -129,7 +129,7 @@ public class ReportDTO {
     }
 
     public static class Log {
-        private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yy-MM-dd hh:mm:ss");
+        private final SimpleDateFormat mDateFormat = new SimpleDateFormat("yy-MM-dd hh:mm:ss");
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
         public String visit;
@@ -146,7 +146,7 @@ public class ReportDTO {
                 return;
             }
             try {
-                spend = millsToSec(DATE_FORMAT.parse(endTime).getTime() - DATE_FORMAT.parse(startTime).getTime());
+                spend = millsToSec(mDateFormat.parse(endTime).getTime() - mDateFormat.parse(startTime).getTime());
             } catch (Exception e) {
                 spend = "未知(时间解析异常)";
             }
